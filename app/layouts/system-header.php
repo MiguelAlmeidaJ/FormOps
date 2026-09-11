@@ -22,5 +22,6 @@ $pageStyles = $pageStyles ?? [];
     <?php endforeach; ?>
     <link rel="stylesheet" href="assets/system-theme.css">
     <link rel="stylesheet" href="assets/system-mobile.css">
+    <link rel="stylesheet" href="assets/system-mobile-pages.css">
 </head>
 <body><div class="system-wrapper">
