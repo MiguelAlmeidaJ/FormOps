@@ -6,6 +6,22 @@ if(!$form){http_response_code(404);require __DIR__.'/../errors/404.php';exit;}
 $stmt=$pdo->prepare('SELECT r.id,r.submitted_by_ip,r.submitted_at,ff.label,a.answer FROM form_responses r LEFT JOIN form_response_answers a ON a.response_id=r.id AND a.tenant_id=r.tenant_id LEFT JOIN form_fields ff ON ff.id=a.field_id AND ff.tenant_id=r.tenant_id WHERE r.tenant_id=? AND r.form_id=? ORDER BY r.submitted_at DESC,r.id DESC,ff.field_order');$stmt->execute([$tenantId,$formId]);$rows=$stmt->fetchAll(PDO::FETCH_ASSOC);$responses=[];foreach($rows as $row){$id=$row['id'];if(!isset($responses[$id]))$responses[$id]=['meta'=>$row,'answers'=>[]];if($row['label']!==null)$responses[$id]['answers'][$row['label']]=$row['answer'];}
 $pageTitle='Respostas';require __DIR__.'/../../layouts/system-header.php';require __DIR__.'/../../layouts/system-sidebar.php';
 ?>
-<a href="system-tenant-forms?tenant_id=<?= $tenantId ?>" class="text-decoration-none">← Voltar</a><h1 class="h3 mt-3"><?= htmlspecialchars($form['title']) ?></h1><p class="text-muted"><?= htmlspecialchars($form['tenant_name']) ?></p>
-<?php foreach($responses as $id=>$response): ?><div class="card shadow-sm mb-3"><div class="card-body"><div class="d-flex justify-content-between mb-3"><strong>Resposta #<?= (int)$id ?></strong><span class="text-muted small"><?= htmlspecialchars($response['meta']['submitted_at']) ?> · <?= htmlspecialchars($response['meta']['submitted_by_ip']??'-') ?></span></div><?php foreach($response['answers'] as $label=>$answer): ?><div class="mb-2"><span class="text-muted"><?= htmlspecialchars($label) ?>:</span> <?= nl2br(htmlspecialchars($answer??'')) ?></div><?php endforeach; ?></div></div><?php endforeach; ?><?php if(!$responses): ?><div class="alert alert-light">Nenhuma resposta encontrada.</div><?php endif; ?>
+<a href="system-tenant-forms?tenant_id=<?= $tenantId ?>" class="text-decoration-none">← Voltar</a>
+<h1 class="h3 mt-3 mb-1"><?= htmlspecialchars($form['title']) ?></h1>
+<p class="text-muted mb-4"><?= htmlspecialchars($form['tenant_name']) ?></p>
+<?php foreach($responses as $id=>$response): ?>
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-1 gap-md-3 mb-3">
+                <strong>Resposta #<?= (int)$id ?></strong>
+                <span class="text-muted small text-md-end"><?= htmlspecialchars($response['meta']['submitted_at']) ?> · <?= htmlspecialchars($response['meta']['submitted_by_ip']??'-') ?></span>
+            </div>
+            <?php foreach($response['answers'] as $label=>$answer): ?>
+                <div class="mb-2 overflow-wrap-anywhere"><span class="text-muted"><?= htmlspecialchars($label) ?>:</span> <?= nl2br(htmlspecialchars($answer??'')) ?></div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endforeach; ?>
+<?php if(!$responses): ?><div class="alert alert-light">Nenhuma resposta encontrada.</div><?php endif; ?>
+<style>.overflow-wrap-anywhere{overflow-wrap:anywhere}</style>
 <?php require __DIR__.'/../../layouts/system-footer.php'; ?>

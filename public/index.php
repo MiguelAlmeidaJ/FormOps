@@ -45,12 +45,14 @@ require_once __DIR__ . '/../app/config/database.php';
 require_once __DIR__ . '/../app/helpers/auth.php';
 require_once __DIR__ . '/../app/helpers/forms.php';
 require_once __DIR__ . '/../app/helpers/pricing.php';
+require_once __DIR__ . '/../app/helpers/compliance.php';
 
 ensureFormLifecycleColumns($pdo);
 ensureUserGroupColumn($pdo);
 ensureTicketInfrastructure($pdo);
 ensurePricingInfrastructure($pdo);
 ensurePasswordResetInfrastructure($pdo);
+formOpsEnsureLgpdInfrastructure($pdo);
 
 $requestPath = rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
 $requestPath = '/' . ltrim(preg_replace('#/+#', '/', $requestPath), '/');
@@ -76,11 +78,35 @@ if (isset($aliases[$route])) {
     redirectTo($aliases[$route], $query, 301);
 }
 
-if (preg_match('#^/f/([^/]+)/([^/]+)$#', $route, $matches)) {
-    $_GET['tenant'] = rawurldecode($matches[1]);
-    $_GET['slug'] = rawurldecode($matches[2]);
+$servePublicForm = static function (string $tenantSlug, string $formSlug) use ($pdo): never {
+    $_GET['tenant'] = $tenantSlug;
+    $_GET['slug'] = $formSlug;
+
+    $acceptedPrivacy = $_SERVER['REQUEST_METHOD'] === 'POST' && formOpsPublicConsentAccepted();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$acceptedPrivacy) {
+        formOpsRenderConsentRequired($tenantSlug, $formSlug);
+    }
+
+    ob_start(static fn (string $html): string => formOpsInjectPublicCompliance($html, $tenantSlug, $formSlug));
     require __DIR__ . '/../app/pages/public/form-public.php';
+
+    // form-public.php mantém os IDs criados no mesmo escopo do include. Assim o
+    // aceite é registrado somente nas respostas realmente criadas por este POST,
+    // sem alterar respostas históricas nem inclusões administrativas.
+    if ($acceptedPrivacy && isset($createdResponseIds) && is_array($createdResponseIds)) {
+        formOpsRecordConsent($pdo, $createdResponseIds);
+    }
+
+    ob_end_flush();
     exit;
+};
+
+if (preg_match('#^/f/([^/]+)/([^/]+)$#', $route, $matches)) {
+    $servePublicForm(rawurldecode($matches[1]), rawurldecode($matches[2]));
+}
+
+if ($route === '/form-public') {
+    $servePublicForm(trim((string) ($_GET['tenant'] ?? '')), trim((string) ($_GET['slug'] ?? '')));
 }
 
 $routes = [
@@ -89,6 +115,8 @@ $routes = [
     '/logout' => 'auth/logout.php',
     '/recuperar-acesso' => 'auth/forgot-password.php',
     '/redefinir-senha' => 'auth/reset-password.php',
+    '/politica-de-privacidade' => 'public/privacy-policy.php',
+    '/politica-de-cookies' => 'public/cookie-policy.php',
 
     '/painel' => 'admin/painel.php',
     '/dashboard' => 'admin/painel.php',
@@ -147,7 +175,6 @@ $routes = [
     '/system-maintenance-start' => 'system/maintenance-start.php',
     '/system-maintenance-exit' => 'system/maintenance-exit.php',
 
-    '/form-public' => 'public/form-public.php',
     '/ingresso' => 'public/ticket-public.php',
     '/ingresso-pdf' => 'public/ticket-pdf.php',
 ];

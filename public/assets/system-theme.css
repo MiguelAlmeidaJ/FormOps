@@ -1,0 +1,1032 @@
+/*
+ * FormOps — identidade visual do produto
+ *
+ * Este tema é carregado apenas nas áreas internas/autenticadas e nas telas
+ * auxiliares de autenticação. Os formulários públicos e ingressos mantêm a
+ * identidade visual configurada por organização/formulário.
+ */
+
+:root {
+    --formops-navy: #012672;
+    --formops-blue: #067AE3;
+    --formops-blue-deep: #015CC0;
+    --formops-teal: #04A09C;
+    --formops-green: #14CB78;
+    --formops-white: #FFFFFF;
+    --formops-text: #012672;
+    --formops-muted: #5E7398;
+    --formops-border: rgba(1, 38, 114, .13);
+    --formops-bg: #F5F9FF;
+    --formops-surface: #FFFFFF;
+    --formops-soft-blue: rgba(6, 122, 227, .08);
+    --formops-soft-teal: rgba(4, 160, 156, .09);
+    --formops-soft-green: rgba(20, 203, 120, .10);
+    --formops-shadow: 0 18px 46px rgba(1, 38, 114, .08);
+    --formops-shadow-strong: 0 20px 48px rgba(1, 38, 114, .16);
+    --bs-primary: #067AE3;
+    --bs-primary-rgb: 6, 122, 227;
+    --bs-secondary: #04A09C;
+    --bs-secondary-rgb: 4, 160, 156;
+    --bs-success: #14CB78;
+    --bs-success-rgb: 20, 203, 120;
+    --bs-body-color: #012672;
+    --bs-body-bg: #F5F9FF;
+    --bs-border-color: rgba(1, 38, 114, .13);
+}
+
+html,
+body {
+    color: var(--formops-text);
+}
+
+body:not(.formops-login-shell) {
+    background:
+        radial-gradient(circle at 94% -8%, rgba(20, 203, 120, .08), transparent 24rem),
+        radial-gradient(circle at 8% 8%, rgba(6, 122, 227, .07), transparent 28rem),
+        var(--formops-bg);
+}
+
+::selection {
+    color: #fff;
+    background: var(--formops-blue-deep);
+}
+
+/* ================================
+   Estrutura interna
+================================ */
+
+.admin-main,
+.system-main {
+    background:
+        radial-gradient(circle at 92% 0%, rgba(4, 160, 156, .055), transparent 25rem),
+        linear-gradient(180deg, #F8FBFF 0%, var(--formops-bg) 100%) !important;
+}
+
+.admin-content,
+.system-content {
+    position: relative;
+}
+
+.admin-topbar,
+.system-topbar {
+    background: rgba(255, 255, 255, .91) !important;
+    border-bottom: 1px solid rgba(1, 38, 114, .10) !important;
+    box-shadow: 0 8px 30px rgba(1, 38, 114, .035);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.admin-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.admin-topbar .fw-semibold,
+.system-topbar strong {
+    color: var(--formops-navy) !important;
+    font-weight: 800 !important;
+    letter-spacing: -.02em;
+}
+
+.admin-topbar .text-muted,
+.system-topbar small,
+.system-user-pill {
+    color: var(--formops-muted) !important;
+}
+
+.system-user-pill {
+    border-color: rgba(6, 122, 227, .14) !important;
+    background: linear-gradient(180deg, #fff, #F8FBFF) !important;
+    box-shadow: 0 8px 22px rgba(1, 38, 114, .06) !important;
+}
+
+/* ================================
+   Navegação lateral
+================================ */
+
+.admin-sidebar,
+.system-sidebar {
+    background:
+        radial-gradient(circle at 22% 2%, rgba(6, 122, 227, .45), transparent 18rem),
+        radial-gradient(circle at 110% 86%, rgba(20, 203, 120, .20), transparent 20rem),
+        linear-gradient(165deg, #012672 0%, #015CC0 63%, #04A09C 135%) !important;
+    box-shadow: 18px 0 45px rgba(1, 38, 114, .20) !important;
+}
+
+.admin-sidebar::before,
+.system-sidebar::before {
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, .08), transparent 42%),
+        radial-gradient(circle at 20% 12%, rgba(255, 255, 255, .09), transparent 12rem) !important;
+}
+
+.admin-sidebar .formops-logo-mark,
+.system-logo-wrap {
+    border-color: rgba(255, 255, 255, .17) !important;
+    background: rgba(255, 255, 255, .10) !important;
+    box-shadow: 0 16px 36px rgba(0, 22, 74, .24) !important;
+}
+
+.admin-sidebar .formops-brand-title,
+.system-brand-title {
+    color: #fff !important;
+}
+
+.admin-sidebar .formops-brand-subtitle,
+.admin-nav-section-label,
+.system-brand-subtitle,
+.system-nav-label,
+.system-help-card span {
+    color: rgba(255, 255, 255, .62) !important;
+}
+
+.admin-nav-section-label,
+.system-nav-label {
+    letter-spacing: .13em;
+}
+
+.admin-sidebar a.admin-nav-item,
+.system-nav-link,
+.system-logout {
+    color: rgba(255, 255, 255, .76) !important;
+    border: 1px solid transparent !important;
+}
+
+.admin-sidebar a.admin-nav-item:hover,
+.system-nav-link:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, .10) !important;
+    border-color: rgba(255, 255, 255, .12) !important;
+    box-shadow: none !important;
+}
+
+.admin-sidebar a.admin-nav-item.active,
+.system-nav-link.active,
+.system-nav-link.featured.active {
+    color: #fff !important;
+    background: linear-gradient(135deg, rgba(6, 122, 227, .96), rgba(4, 160, 156, .96)) !important;
+    border-color: rgba(255, 255, 255, .22) !important;
+    box-shadow: 0 14px 30px rgba(0, 27, 91, .26) !important;
+}
+
+.admin-sidebar a.admin-nav-featured:not(.active),
+.system-nav-link.featured:not(.active) {
+    color: #fff !important;
+    background: rgba(20, 203, 120, .13) !important;
+    border-color: rgba(20, 203, 120, .24) !important;
+}
+
+.admin-sidebar a.admin-nav-featured:not(.active):hover,
+.system-nav-link.featured:not(.active):hover {
+    background: rgba(20, 203, 120, .20) !important;
+    border-color: rgba(20, 203, 120, .34) !important;
+}
+
+.admin-nav-divider,
+.admin-sidebar-footer,
+.system-brand,
+.system-sidebar-footer {
+    border-color: rgba(255, 255, 255, .13) !important;
+}
+
+.system-admin-badge {
+    color: #fff !important;
+    background: rgba(255, 255, 255, .09) !important;
+    border-color: rgba(255, 255, 255, .14) !important;
+}
+
+.system-admin-dot {
+    background: var(--formops-green) !important;
+    box-shadow: 0 0 0 4px rgba(20, 203, 120, .16) !important;
+}
+
+.system-help-card {
+    background: rgba(255, 255, 255, .07) !important;
+    border-color: rgba(255, 255, 255, .10) !important;
+}
+
+.system-help-card:hover {
+    background: rgba(255, 255, 255, .11) !important;
+    border-color: rgba(255, 255, 255, .16) !important;
+}
+
+.system-help-icon {
+    color: #fff !important;
+    background: rgba(6, 122, 227, .34) !important;
+}
+
+/* ================================
+   Tipografia, links e superfícies
+================================ */
+
+.admin-main h1,
+.admin-main h2,
+.admin-main h3,
+.admin-main h4,
+.admin-main h5,
+.admin-main h6,
+.system-main h1,
+.system-main h2,
+.system-main h3,
+.system-main h4,
+.system-main h5,
+.system-main h6 {
+    color: var(--formops-navy);
+}
+
+.admin-main .text-muted,
+.system-main .text-muted,
+.admin-main .form-text,
+.system-main .form-text {
+    color: var(--formops-muted) !important;
+}
+
+.admin-main a:not(.btn):not(.admin-nav-item),
+.system-main a:not(.btn):not(.system-nav-link):not(.system-logout) {
+    color: var(--formops-blue-deep);
+}
+
+.admin-main a:not(.btn):not(.admin-nav-item):hover,
+.system-main a:not(.btn):not(.system-nav-link):not(.system-logout):hover {
+    color: var(--formops-teal);
+}
+
+.admin-main .card,
+.system-main .card,
+.admin-main .modal-content,
+.system-main .modal-content,
+.admin-main .dropdown-menu,
+.system-main .dropdown-menu,
+.admin-main .offcanvas,
+.system-main .offcanvas {
+    border: 1px solid rgba(1, 38, 114, .10);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: var(--formops-shadow);
+}
+
+.admin-main .card.shadow-sm,
+.system-main .card.shadow-sm {
+    box-shadow: var(--formops-shadow) !important;
+}
+
+.admin-main .dropdown-menu,
+.system-main .dropdown-menu {
+    padding: 8px;
+}
+
+.admin-main .dropdown-item,
+.system-main .dropdown-item {
+    border-radius: 10px;
+}
+
+.admin-main .dropdown-item:hover,
+.system-main .dropdown-item:hover {
+    color: var(--formops-navy);
+    background: var(--formops-soft-blue);
+}
+
+/* ================================
+   Botões
+================================ */
+
+.admin-main .btn,
+.system-main .btn,
+.formops-login-shell .btn {
+    border-radius: 12px;
+    font-weight: 700;
+    transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
+}
+
+.admin-main .btn:hover,
+.system-main .btn:hover,
+.formops-login-shell .btn:hover {
+    transform: translateY(-1px);
+}
+
+.admin-main .btn-primary,
+.system-main .btn-primary,
+.formops-login-shell .btn-primary {
+    color: #fff !important;
+    border-color: transparent !important;
+    background: linear-gradient(135deg, var(--formops-blue-deep), var(--formops-blue) 52%, var(--formops-teal)) !important;
+    box-shadow: 0 11px 24px rgba(6, 122, 227, .22) !important;
+}
+
+.admin-main .btn-primary:hover,
+.system-main .btn-primary:hover,
+.formops-login-shell .btn-primary:hover {
+    box-shadow: 0 14px 30px rgba(6, 122, 227, .28) !important;
+}
+
+.admin-main .btn-success,
+.system-main .btn-success {
+    color: #fff !important;
+    border-color: var(--formops-green) !important;
+    background: var(--formops-green) !important;
+    box-shadow: 0 10px 22px rgba(20, 203, 120, .18);
+}
+
+.admin-main .btn-outline-primary,
+.system-main .btn-outline-primary {
+    color: var(--formops-blue-deep) !important;
+    border-color: rgba(6, 122, 227, .42) !important;
+    background: #fff !important;
+}
+
+.admin-main .btn-outline-primary:hover,
+.system-main .btn-outline-primary:hover {
+    color: #fff !important;
+    border-color: var(--formops-blue) !important;
+    background: var(--formops-blue) !important;
+}
+
+.admin-main .btn-outline-secondary,
+.system-main .btn-outline-secondary {
+    color: var(--formops-teal) !important;
+    border-color: rgba(4, 160, 156, .35) !important;
+}
+
+.admin-main .btn-outline-secondary:hover,
+.system-main .btn-outline-secondary:hover {
+    color: #fff !important;
+    background: var(--formops-teal) !important;
+    border-color: var(--formops-teal) !important;
+}
+
+.admin-main .btn-outline-dark,
+.system-main .btn-outline-dark {
+    color: var(--formops-navy) !important;
+    border-color: rgba(1, 38, 114, .28) !important;
+}
+
+.admin-main .btn-outline-dark:hover,
+.system-main .btn-outline-dark:hover {
+    color: #fff !important;
+    background: var(--formops-navy) !important;
+    border-color: var(--formops-navy) !important;
+}
+
+/* ================================
+   Formulários internos
+================================ */
+
+.admin-main .form-control,
+.admin-main .form-select,
+.admin-main .input-group-text,
+.system-main .form-control,
+.system-main .form-select,
+.system-main .input-group-text,
+.formops-login-shell .form-control,
+.formops-login-shell .form-select {
+    color: var(--formops-navy);
+    border-color: rgba(1, 38, 114, .16);
+    background-color: #fff;
+    border-radius: 12px;
+}
+
+.admin-main .form-control::placeholder,
+.system-main .form-control::placeholder,
+.formops-login-shell .form-control::placeholder {
+    color: #8B9BBB;
+}
+
+.admin-main .form-control:focus,
+.admin-main .form-select:focus,
+.system-main .form-control:focus,
+.system-main .form-select:focus,
+.formops-login-shell .form-control:focus,
+.formops-login-shell .form-select:focus {
+    border-color: var(--formops-blue) !important;
+    box-shadow: 0 0 0 .22rem rgba(6, 122, 227, .13) !important;
+}
+
+.admin-main .form-check-input:checked,
+.system-main .form-check-input:checked,
+.formops-login-shell .form-check-input:checked {
+    background-color: var(--formops-blue-deep) !important;
+    border-color: var(--formops-blue-deep) !important;
+}
+
+.admin-main .form-check-input:focus,
+.system-main .form-check-input:focus,
+.formops-login-shell .form-check-input:focus {
+    border-color: var(--formops-blue) !important;
+    box-shadow: 0 0 0 .22rem rgba(6, 122, 227, .13) !important;
+}
+
+/* ================================
+   Tabelas, navegação e feedback
+================================ */
+
+.admin-main .table,
+.system-main .table {
+    --bs-table-color: var(--formops-navy);
+    --bs-table-striped-color: var(--formops-navy);
+    --bs-table-hover-color: var(--formops-navy);
+    --bs-table-hover-bg: rgba(6, 122, 227, .035);
+}
+
+.admin-main .table > thead > tr > th,
+.system-main .table > thead > tr > th {
+    color: #45638F;
+    background: linear-gradient(180deg, #F8FBFF, #F1F7FF);
+    border-bottom-color: rgba(1, 38, 114, .12);
+}
+
+.admin-main .table > :not(caption) > * > *,
+.system-main .table > :not(caption) > * > * {
+    border-color: rgba(1, 38, 114, .08);
+}
+
+.admin-main .page-link,
+.system-main .page-link {
+    color: var(--formops-blue-deep);
+    border-color: rgba(1, 38, 114, .12);
+}
+
+.admin-main .page-item.active .page-link,
+.system-main .page-item.active .page-link,
+.admin-main .nav-pills .nav-link.active,
+.system-main .nav-pills .nav-link.active,
+.admin-main .progress-bar,
+.system-main .progress-bar {
+    color: #fff !important;
+    border-color: var(--formops-blue-deep) !important;
+    background: linear-gradient(135deg, var(--formops-blue-deep), var(--formops-teal)) !important;
+}
+
+.admin-main .badge.bg-primary,
+.system-main .badge.bg-primary {
+    background: var(--formops-blue-deep) !important;
+}
+
+.admin-main .badge.bg-success,
+.system-main .badge.bg-success {
+    background: var(--formops-green) !important;
+}
+
+.admin-main .badge.bg-secondary,
+.system-main .badge.bg-secondary {
+    background: #7184A5 !important;
+}
+
+.admin-main .alert,
+.system-main .alert,
+.formops-login-shell .alert {
+    border-radius: 14px;
+    border-width: 1px;
+    box-shadow: 0 10px 25px rgba(1, 38, 114, .05);
+}
+
+.admin-main .alert-info,
+.system-main .alert-info,
+.formops-login-shell .alert-info {
+    color: var(--formops-navy);
+    border-color: rgba(6, 122, 227, .18);
+    background: rgba(6, 122, 227, .08);
+}
+
+.admin-main .alert-success,
+.system-main .alert-success,
+.formops-login-shell .alert-success {
+    color: #087847;
+    border-color: rgba(20, 203, 120, .24);
+    background: rgba(20, 203, 120, .10);
+}
+
+/* ================================
+   Dashboard principal do tenant
+================================ */
+
+body .admin-main .dashboard-kicker {
+    color: var(--formops-blue-deep) !important;
+}
+
+body .admin-main .dashboard-title,
+body .admin-main .dashboard-card-title,
+body .admin-main .metric-value,
+body .admin-main .response-title {
+    color: var(--formops-navy) !important;
+}
+
+body .admin-main .dashboard-subtitle,
+body .admin-main .metric-label,
+body .admin-main .metric-text,
+body .admin-main .response-date,
+body .admin-main .empty-state {
+    color: var(--formops-muted) !important;
+}
+
+body .admin-main .dashboard-primary {
+    color: #fff !important;
+    border: 0 !important;
+    background: linear-gradient(135deg, var(--formops-blue-deep), var(--formops-blue) 50%, var(--formops-teal)) !important;
+    box-shadow: 0 14px 30px rgba(6, 122, 227, .24) !important;
+}
+
+body .admin-main .metric-card,
+body .admin-main .dashboard-card {
+    border-color: rgba(1, 38, 114, .10) !important;
+    border-radius: 20px !important;
+    background: #fff !important;
+    box-shadow: var(--formops-shadow) !important;
+}
+
+body .admin-main .metric-card {
+    position: relative;
+    overflow: hidden;
+}
+
+body .admin-main .metric-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--formops-blue), var(--formops-teal), var(--formops-green));
+}
+
+body .admin-main .metric-icon {
+    color: var(--formops-blue-deep) !important;
+    background: linear-gradient(135deg, rgba(6, 122, 227, .12), rgba(20, 203, 120, .12)) !important;
+}
+
+body .admin-main .dashboard-card-head {
+    border-color: rgba(1, 38, 114, .08) !important;
+}
+
+body .admin-main .dashboard-table th {
+    color: #4C6790 !important;
+    background: #F3F8FF !important;
+}
+
+body .admin-main .dashboard-table td,
+body .admin-main .response-item {
+    border-color: rgba(1, 38, 114, .07) !important;
+}
+
+body .admin-main .dashboard-action {
+    color: var(--formops-blue-deep) !important;
+}
+
+/* ================================
+   Lista de formulários
+================================ */
+
+body .admin-main .forms-kicker,
+body .admin-main .forms-hero h1,
+body .admin-main .forms-filter-card h2,
+body .admin-main .form-title-cell strong,
+body .admin-main .forms-empty-state h2,
+body .admin-main .qr-modal-content .modal-title {
+    color: var(--formops-navy) !important;
+}
+
+body .admin-main .forms-hero p,
+body .admin-main .forms-filter-card p,
+body .admin-main .forms-table thead th,
+body .admin-main .form-title-cell span,
+body .admin-main .forms-empty-state p,
+body .admin-main .qr-modal-subtitle {
+    color: var(--formops-muted) !important;
+}
+
+body .admin-main .forms-primary-action {
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--formops-blue-deep), var(--formops-blue) 50%, var(--formops-teal)) !important;
+    box-shadow: 0 14px 30px rgba(6, 122, 227, .22) !important;
+}
+
+body .admin-main .forms-filter-card,
+body .admin-main .forms-table-card,
+body .admin-main .qr-modal-content {
+    border-color: rgba(1, 38, 114, .10) !important;
+    box-shadow: var(--formops-shadow) !important;
+}
+
+body .admin-main .forms-table thead th,
+body .admin-main .forms-muted-badge,
+body .admin-main .forms-type-badge,
+body .admin-main .qr-modal-image-wrap {
+    background: #F3F8FF !important;
+}
+
+body .admin-main .forms-table tbody tr:hover {
+    background: rgba(6, 122, 227, .035) !important;
+}
+
+body .admin-main .forms-empty-icon {
+    color: var(--formops-blue-deep) !important;
+    background: var(--formops-soft-blue) !important;
+}
+
+body .admin-main .icon-action:not(.danger):not(.warning):hover {
+    color: var(--formops-blue-deep) !important;
+    border-color: rgba(6, 122, 227, .26) !important;
+    background: var(--formops-soft-blue) !important;
+}
+
+/* ================================
+   Dashboard de um formulário
+================================ */
+
+body .admin-main .dash-card {
+    border-color: rgba(1, 38, 114, .10) !important;
+    border-radius: 18px !important;
+    box-shadow: var(--formops-shadow) !important;
+}
+
+body .admin-main .filter-title,
+body .admin-main .filter-panel .form-label,
+body .admin-main .chart-head h2,
+body .admin-main .chart-label {
+    color: var(--formops-navy) !important;
+}
+
+body .admin-main .field-checks,
+body .admin-main .field-chip {
+    border-color: rgba(1, 38, 114, .12) !important;
+}
+
+body .admin-main .field-checks {
+    background: #F6FAFF !important;
+}
+
+body .admin-main .field-chip {
+    color: var(--formops-navy) !important;
+    background: #fff !important;
+}
+
+body .admin-main .chart-summary {
+    color: var(--formops-navy) !important;
+    background: linear-gradient(135deg, rgba(6, 122, 227, .08), rgba(4, 160, 156, .08)) !important;
+}
+
+body .admin-main .chart-track,
+body .admin-main .donut {
+    --chart-color: var(--formops-blue);
+}
+
+/* ================================
+   Usuários
+================================ */
+
+body .admin-main .users-hero,
+body .admin-main .responses-hero {
+    border-color: rgba(1, 38, 114, .10) !important;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(20, 203, 120, .07), transparent 18rem),
+        linear-gradient(135deg, #F8FBFF, #FFFFFF) !important;
+    box-shadow: var(--formops-shadow) !important;
+}
+
+body .admin-main .users-title,
+body .admin-main .user-name,
+body .admin-main .user-modal-title {
+    color: var(--formops-navy) !important;
+}
+
+body .admin-main .users-subtitle,
+body .admin-main .user-email,
+body .admin-main .user-modal-note {
+    color: var(--formops-muted) !important;
+}
+
+body .admin-main .users-add {
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--formops-blue-deep), var(--formops-teal)) !important;
+    box-shadow: 0 12px 26px rgba(6, 122, 227, .20);
+}
+
+body .admin-main .user-card {
+    border-color: rgba(1, 38, 114, .09) !important;
+    box-shadow: 0 10px 28px rgba(1, 38, 114, .05) !important;
+}
+
+body .admin-main .user-card:hover {
+    border-color: rgba(6, 122, 227, .22) !important;
+    box-shadow: 0 15px 34px rgba(1, 38, 114, .09) !important;
+}
+
+body .admin-main .user-avatar {
+    color: var(--formops-blue-deep) !important;
+    background: linear-gradient(135deg, rgba(6, 122, 227, .12), rgba(20, 203, 120, .10)) !important;
+}
+
+body .admin-main .user-group-tag,
+body .admin-main .group-access-box {
+    color: var(--formops-navy) !important;
+    background: #F4F9FF !important;
+    border-color: rgba(1, 38, 114, .10) !important;
+}
+
+body .admin-main .group-option:has(input:checked) {
+    border-color: rgba(6, 122, 227, .38) !important;
+    background: var(--formops-soft-blue) !important;
+}
+
+body .admin-main .user-edit:hover,
+body .admin-main .password-toggle:hover {
+    color: var(--formops-blue-deep) !important;
+    background: var(--formops-soft-blue) !important;
+}
+
+/* ================================
+   Respostas
+================================ */
+
+body .admin-main .responses-hero-title,
+body .admin-main .responses-metric-value,
+body .admin-main .response-primary {
+    color: var(--formops-navy) !important;
+}
+
+body .admin-main .responses-hero-subtitle,
+body .admin-main .responses-filter-title,
+body .admin-main .responses-filter-control label,
+body .admin-main .responses-metric-label,
+body .admin-main .responses-metric-note,
+body .admin-main .response-secondary {
+    color: var(--formops-muted) !important;
+}
+
+body .admin-main .responses-filter-box,
+body .admin-main .responses-metric {
+    border-color: rgba(1, 38, 114, .10) !important;
+    background: #fff !important;
+}
+
+body .admin-main .responses-metric-icon {
+    color: var(--formops-blue-deep) !important;
+    background: linear-gradient(135deg, rgba(6, 122, 227, .11), rgba(4, 160, 156, .10)) !important;
+}
+
+body .admin-main .responses-table thead th {
+    color: #4C6790 !important;
+    background: #F3F8FF !important;
+}
+
+body .admin-main .response-icon-action:not(.delete):hover {
+    color: var(--formops-blue-deep) !important;
+    border-color: rgba(6, 122, 227, .25) !important;
+    background: var(--formops-soft-blue) !important;
+}
+
+/* ================================
+   Configurações do sistema
+================================ */
+
+body .system-main .system-settings-hero.premium {
+    border-color: rgba(1, 38, 114, .10) !important;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(20, 203, 120, .08), transparent 20rem),
+        linear-gradient(135deg, #FFFFFF 0%, #F5F9FF 100%) !important;
+    box-shadow: var(--formops-shadow) !important;
+}
+
+body .system-main .system-settings-kicker,
+body .system-main .system-settings-hero h1,
+body .system-main .system-settings-card h2,
+body .system-main .system-settings-list strong,
+body .system-main .system-summary-grid strong,
+body .system-main .system-summary-grid small,
+body .system-main .system-maintenance-status strong,
+body .system-main .tenant-maintenance-box strong,
+body .system-main .system-empty-state strong {
+    color: var(--formops-navy) !important;
+}
+
+body .system-main .system-settings-hero p,
+body .system-main .system-settings-list span,
+body .system-main .system-card-description,
+body .system-main .system-summary-grid em,
+body .system-main .system-maintenance-status span,
+body .system-main .tenant-maintenance-box span,
+body .system-main .system-empty-state span,
+body .system-main .system-log-table th {
+    color: var(--formops-muted) !important;
+}
+
+body .system-main .system-settings-card {
+    border-color: rgba(1, 38, 114, .10) !important;
+    box-shadow: var(--formops-shadow) !important;
+}
+
+body .system-main .system-settings-card::before {
+    background: linear-gradient(90deg, var(--formops-blue), var(--formops-teal), var(--formops-green)) !important;
+}
+
+body .system-main .system-admin-role-badge,
+body .system-main .system-badge.primary,
+body .system-main .system-card-icon,
+body .system-main .metric-icon {
+    color: var(--formops-blue-deep) !important;
+    background: var(--formops-soft-blue) !important;
+}
+
+body .system-main .system-summary-grid div,
+body .system-main .system-maintenance-status div,
+body .system-main .tenant-maintenance-box,
+body .system-main .system-security-note,
+body .system-main .system-empty-state {
+    border-color: rgba(1, 38, 114, .10) !important;
+    background: #F5F9FF !important;
+}
+
+body .system-main .system-summary-grid div:hover {
+    border-color: rgba(6, 122, 227, .20) !important;
+    box-shadow: 0 18px 36px rgba(1, 38, 114, .09) !important;
+}
+
+body .system-main .system-settings-output {
+    color: #DDEAFF !important;
+    border-color: rgba(6, 122, 227, .20) !important;
+    background: linear-gradient(160deg, #012672, #001C56) !important;
+}
+
+body .system-main .system-log-table-wrap {
+    border-color: rgba(1, 38, 114, .10) !important;
+}
+
+body .system-main .system-log-table th {
+    background: #F3F8FF !important;
+}
+
+/* ================================
+   Editor de identidade visual
+   Somente a interface do editor recebe a marca FormOps.
+   A prévia pública (#publicPreview) permanece isolada.
+================================ */
+
+body .admin-main .brand-page-eyebrow,
+body .admin-main .brand-page-title,
+body .admin-main .brand-card-title,
+body .admin-main .upload-box h3,
+body .admin-main .upload-main,
+body .admin-main .brand-field label,
+body .admin-main .color-field label,
+body .admin-main .color-value {
+    color: var(--formops-navy) !important;
+}
+
+body .admin-main .brand-page-subtitle,
+body .admin-main .brand-card-text,
+body .admin-main .upload-or,
+body .admin-main .upload-help,
+body .admin-main .upload-note,
+body .admin-main .upload-current {
+    color: var(--formops-muted) !important;
+}
+
+body .admin-main .brand-card,
+body .admin-main .upload-box,
+body .admin-main .color-control {
+    border-color: rgba(1, 38, 114, .11) !important;
+    box-shadow: none;
+}
+
+body .admin-main .brand-card {
+    box-shadow: var(--formops-shadow) !important;
+}
+
+body .admin-main .upload-box,
+body .admin-main .color-control {
+    background: #F6FAFF !important;
+}
+
+body .admin-main .upload-icon {
+    color: var(--formops-blue-deep) !important;
+    background: var(--formops-soft-blue) !important;
+}
+
+body .admin-main .upload-box:hover,
+body .admin-main .upload-box.is-dragover {
+    border-color: rgba(6, 122, 227, .42) !important;
+    box-shadow: 0 14px 30px rgba(1, 38, 114, .09) !important;
+}
+
+body .admin-main .upload-button {
+    color: var(--formops-blue-deep) !important;
+    border-color: rgba(6, 122, 227, .28) !important;
+}
+
+body .admin-main .brand-save-button {
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--formops-blue-deep), var(--formops-blue), var(--formops-teal)) !important;
+    box-shadow: 0 14px 30px rgba(6, 122, 227, .22) !important;
+}
+
+/* NÃO aplicar a identidade FormOps à prévia do formulário. */
+body .admin-main #publicPreview {
+    box-shadow: none;
+}
+
+body .admin-main #publicPreview .preview-submit {
+    background: var(--preview-button, #212121) !important;
+}
+
+body .admin-main #publicPreview .preview-cover {
+    background-color: var(--preview-primary, #212121) !important;
+}
+
+body .admin-main #publicPreview .preview-name,
+body .admin-main #publicPreview .preview-field label {
+    color: inherit !important;
+}
+
+/* ================================
+   Alertas customizados
+================================ */
+
+.formops-alert-overlay {
+    background: rgba(1, 20, 61, .62) !important;
+    backdrop-filter: blur(4px);
+}
+
+.formops-alert {
+    border-color: rgba(1, 38, 114, .12) !important;
+    box-shadow: 0 30px 80px rgba(1, 38, 114, .24) !important;
+}
+
+.formops-alert-icon {
+    color: var(--formops-blue-deep) !important;
+    background: var(--formops-soft-blue) !important;
+}
+
+.formops-alert-content h2 {
+    color: var(--formops-navy) !important;
+}
+
+.formops-alert-content p {
+    color: var(--formops-muted) !important;
+}
+
+.formops-alert-button--primary:not(.formops-alert--danger *) {
+    background: linear-gradient(135deg, var(--formops-blue-deep), var(--formops-teal)) !important;
+    box-shadow: 0 10px 22px rgba(6, 122, 227, .20) !important;
+}
+
+.formops-alert-button:focus-visible {
+    outline-color: rgba(6, 122, 227, .25) !important;
+}
+
+/* ================================
+   Recuperação de acesso
+================================ */
+
+.formops-login-shell:has(.formops-login-card) {
+    color: var(--formops-navy);
+}
+
+.formops-login-shell .formops-login-card {
+    border-color: rgba(1, 38, 114, .10) !important;
+    box-shadow: 0 26px 70px rgba(1, 38, 114, .15) !important;
+}
+
+.formops-login-shell .formops-login-card h1 {
+    color: var(--formops-navy) !important;
+    font-weight: 800;
+}
+
+.formops-login-shell .btn-link {
+    color: var(--formops-blue-deep) !important;
+}
+
+.formops-login-shell .formops-reset-code {
+    color: var(--formops-navy);
+}
+
+/* ================================
+   Responsividade
+================================ */
+
+@media (max-width: 991px) {
+    .admin-sidebar,
+    .system-sidebar {
+        box-shadow: 0 14px 34px rgba(1, 38, 114, .18) !important;
+    }
+
+    .admin-topbar,
+    .system-topbar {
+        position: relative;
+    }
+}
+
+@media (max-width: 767px) {
+    .admin-content,
+    .system-content {
+        padding: 18px !important;
+    }
+
+    .admin-main .card,
+    .system-main .card,
+    body .admin-main .dashboard-card,
+    body .admin-main .metric-card,
+    body .admin-main .users-hero,
+    body .admin-main .responses-hero,
+    body .system-main .system-settings-card,
+    body .system-main .system-settings-hero.premium {
+        border-radius: 16px !important;
+    }
+}

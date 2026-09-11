@@ -1,0 +1,713 @@
+/*
+ * Ajustes responsivos tela a tela das áreas internas do FormOps.
+ * Não é carregado em formulários nem ingressos públicos.
+ */
+
+@media (max-width: 1199.98px) {
+    .brand-layout,
+    .appearance-layout,
+    .ticket-editor-layout,
+    .dashboard-columns {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .preview-card,
+    .appearance-preview-card,
+    .ticket-preview-shell {
+        position: static !important;
+        top: auto !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    /* Cabeçalhos genéricos usados por grupos, presença e super admin. */
+    .admin-content > .d-flex.justify-content-between,
+    .system-content > .d-flex.justify-content-between,
+    .admin-content > .d-flex.flex-wrap.justify-content-between,
+    .system-content > .d-flex.flex-wrap.justify-content-between {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 14px !important;
+    }
+
+    .admin-content > .d-flex.justify-content-between > .d-flex,
+    .system-content > .d-flex.justify-content-between > .d-flex,
+    .admin-content > .d-flex.flex-wrap.justify-content-between > .d-flex,
+    .system-content > .d-flex.flex-wrap.justify-content-between > .d-flex {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        gap: 8px !important;
+    }
+
+    .admin-content > .d-flex.justify-content-between > .d-flex .btn,
+    .system-content > .d-flex.justify-content-between > .d-flex .btn,
+    .admin-content > .d-flex.flex-wrap.justify-content-between > .d-flex .btn,
+    .system-content > .d-flex.flex-wrap.justify-content-between > .d-flex .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .admin-content > .alert.d-flex,
+    .system-content > .alert.d-flex {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+    }
+
+    .admin-content > .alert.d-flex .btn,
+    .system-content > .alert.d-flex .btn {
+        width: 100%;
+    }
+
+    /* Ações finais dos formulários simples. */
+    .admin-main form > .d-flex.justify-content-between,
+    .system-main form > .d-flex.justify-content-between,
+    .admin-main form > .d-flex.gap-2,
+    .system-main form > .d-flex.gap-2 {
+        flex-wrap: wrap;
+        gap: 10px !important;
+    }
+
+    /* Tabelas: inclusive respostas, cujo wrapper original usa overflow-hidden. */
+    .mobile-table-scroll,
+    .table-responsive,
+    .forms-table-card,
+    .system-log-table-wrap {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: thin;
+    }
+
+    .mobile-table-scroll {
+        outline: none;
+    }
+
+    .mobile-table-scroll:focus-visible {
+        box-shadow: inset 0 0 0 2px rgba(6, 122, 227, .22);
+    }
+
+    .system-content .table,
+    .forms-table,
+    .dashboard-table,
+    .responses-table,
+    .attendance-table,
+    .system-log-table,
+    .log-table {
+        min-width: 720px;
+    }
+
+    .responses-table {
+        table-layout: auto !important;
+    }
+
+    .form-actions,
+    .response-row-actions {
+        flex-wrap: nowrap !important;
+    }
+
+    .form-actions {
+        min-width: max-content;
+    }
+
+    /* Painel. */
+    .dashboard-grid,
+    .dash-grid,
+    .system-summary-grid,
+    .system-maintenance-status,
+    .responses-metrics,
+    .maintenance-status {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    /* Formulários e filtros. */
+    .forms-filter-card,
+    .forms-filter-form,
+    .filter-panel,
+    .responses-filter-grid,
+    .attendance-config-grid {
+        width: 100% !important;
+        grid-template-columns: 1fr !important;
+    }
+
+    .filter-actions,
+    .filter-actions .btn,
+    .attendance-actions,
+    .attendance-actions .btn {
+        width: 100% !important;
+    }
+
+    /* Editor de formulário. */
+    .form-editor {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .form-editor > .d-flex.flex-wrap.justify-content-between {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .form-editor > .d-flex.flex-wrap.justify-content-between > .d-flex,
+    .form-editor > .d-flex.flex-wrap.justify-content-between > div:last-child {
+        width: 100%;
+    }
+
+    .form-editor > .d-flex.flex-wrap.justify-content-between .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .form-editor-tabs {
+        width: calc(100% + 36px) !important;
+        margin-left: -18px !important;
+        margin-right: -18px !important;
+        padding: 0 18px !important;
+        gap: 20px !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+    }
+
+    .form-editor-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .form-editor-tabs .nav-link {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        scroll-snap-align: start;
+    }
+
+    .field-sort-main {
+        min-width: 0 !important;
+    }
+
+    .field-sort-main strong {
+        overflow-wrap: anywhere;
+    }
+
+    .field-width-control {
+        white-space: normal !important;
+    }
+
+    .ticket-preview-shell,
+    .appearance-preview-card,
+    .preview-card {
+        position: static !important;
+    }
+
+    .ticket-preview,
+    .appearance-preview,
+    #publicPreview {
+        max-width: 100%;
+    }
+
+    .appearance-upload-grid,
+    .appearance-color-grid,
+    .ticket-color-row,
+    .upload-grid,
+    .color-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    /* Pagamento. */
+    .pricing-item-actions {
+        flex-wrap: wrap !important;
+    }
+
+    .pricing-editor form .col-12.d-flex.justify-content-between,
+    .pricing-new form .col-12.d-flex.justify-content-between {
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    /* Dashboard do formulário. */
+    .chart-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .field-checks,
+    .attendance-field-list {
+        max-height: 180px !important;
+    }
+
+    .chart-row {
+        grid-template-columns: minmax(110px, 160px) minmax(120px, 1fr) 72px !important;
+    }
+
+    /* Usuários. */
+    .user-card {
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        gap: 12px !important;
+        padding: 16px !important;
+    }
+
+    .user-groups,
+    .user-role,
+    .user-created {
+        grid-column: 1 / -1 !important;
+    }
+
+    .user-status {
+        grid-column: 1 !important;
+    }
+
+    .user-edit {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+    }
+
+    .user-name,
+    .user-email {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+    }
+
+    /* Cards de grupos. */
+    .admin-content .row.g-3 > [class*="col-"] > .card .d-flex.flex-wrap.gap-2 .btn {
+        flex: 1 1 140px;
+        justify-content: center;
+    }
+
+    /* Controle de entrada. */
+    .checkin-page {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .checkin-hero {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .checkin-event-filter {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin-top: 0 !important;
+    }
+
+    .checkin-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .checkin-search {
+        flex-wrap: wrap;
+    }
+
+    .checkin-search .form-control {
+        flex: 1 1 100%;
+    }
+
+    .checkin-search .btn {
+        flex: 1 1 calc(50% - 5px);
+    }
+
+    .scanner video {
+        max-height: min(52vh, 420px) !important;
+    }
+
+    /* Configurações. */
+    .settings-grid,
+    .system-settings-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .settings-card.full,
+    .system-settings-card.full {
+        grid-column: 1 !important;
+    }
+
+    .settings-value,
+    .system-settings-list strong {
+        overflow-wrap: anywhere;
+    }
+
+    .settings-output,
+    .system-settings-output {
+        max-width: 100%;
+        overflow: auto;
+    }
+
+    .system-hero-actions,
+    .system-maintenance-actions,
+    .maintenance-actions {
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .system-hero-actions form,
+    .system-maintenance-actions form,
+    .maintenance-actions form,
+    .system-hero-actions .btn,
+    .system-maintenance-actions .btn,
+    .maintenance-actions .btn {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* Detalhes da resposta. */
+    .ticket-admin-item {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+    }
+
+    .ticket-admin-item > .d-flex {
+        width: 100%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    /* Ações e botões ficam em uma coluna. */
+    .admin-content > .d-flex.justify-content-between > .d-flex,
+    .system-content > .d-flex.justify-content-between > .d-flex,
+    .admin-content > .d-flex.flex-wrap.justify-content-between > .d-flex,
+    .system-content > .d-flex.flex-wrap.justify-content-between > .d-flex,
+    .system-hero-actions,
+    .system-maintenance-actions,
+    .maintenance-actions {
+        grid-template-columns: 1fr !important;
+    }
+
+    .admin-main form > .d-flex.justify-content-between,
+    .system-main form > .d-flex.justify-content-between,
+    .admin-main form > .d-flex.gap-2,
+    .system-main form > .d-flex.gap-2 {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .admin-main form > .d-flex.justify-content-between > .btn,
+    .admin-main form > .d-flex.justify-content-between > button,
+    .system-main form > .d-flex.justify-content-between > .btn,
+    .system-main form > .d-flex.justify-content-between > button,
+    .admin-main form > .d-flex.gap-2 > .btn,
+    .system-main form > .d-flex.gap-2 > .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Editor: lista de campos deixa de espremer ações. */
+    .field-sort-item {
+        display: grid !important;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        align-items: start !important;
+        gap: 10px !important;
+    }
+
+    .field-sort-main {
+        grid-column: 3;
+    }
+
+    .field-sort-actions {
+        grid-column: 1 / -1;
+        width: 100% !important;
+        justify-content: flex-end !important;
+        padding-left: 0 !important;
+        flex-wrap: wrap !important;
+    }
+
+    .field-width-control {
+        margin-right: auto;
+        flex-wrap: wrap;
+    }
+
+    .field-banner-thumb {
+        grid-column: 3;
+        width: min(100%, 120px) !important;
+        height: 64px !important;
+    }
+
+    /* Pagamento. */
+    .pricing-card-head,
+    .pricing-item-main {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .pricing-item-actions {
+        width: 100% !important;
+    }
+
+    .pricing-editor form .col-12.d-flex.justify-content-between,
+    .pricing-new form .col-12.d-flex.justify-content-between {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .pricing-editor form .col-12.d-flex.justify-content-between .btn,
+    .pricing-new form .col-12.d-flex.justify-content-between .btn {
+        width: 100%;
+    }
+
+    /* Prévia de ingresso/aparência. */
+    .ticket-preview {
+        min-height: 420px !important;
+        border-radius: 18px !important;
+    }
+
+    .ticket-preview-content {
+        min-height: 420px !important;
+        padding: 24px !important;
+    }
+
+    .ticket-preview-title {
+        font-size: clamp(26px, 8vw, 34px) !important;
+    }
+
+    .appearance-preview-cover {
+        min-height: 160px !important;
+    }
+
+    .appearance-preview-banner-text,
+    .appearance-preview-inner {
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+    }
+
+    /* Gráficos. */
+    .chart-row {
+        grid-template-columns: 1fr auto !important;
+        gap: 6px 10px !important;
+    }
+
+    .chart-label { grid-column: 1; }
+    .chart-count { grid-column: 2; grid-row: 1; }
+    .chart-track { grid-column: 1 / -1; grid-row: 2; }
+
+    /* Resposta individual vira blocos legíveis. */
+    .response-detail-table,
+    .response-detail-table tbody,
+    .response-detail-table tr,
+    .response-detail-table th,
+    .response-detail-table td {
+        display: block;
+        width: 100% !important;
+    }
+
+    .response-detail-table tr {
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(1, 38, 114, .08);
+    }
+
+    .response-detail-table th,
+    .response-detail-table td {
+        border: 0 !important;
+        padding: 3px 0 !important;
+    }
+
+    .ticket-admin-item > .d-flex {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px !important;
+    }
+
+    .ticket-admin-item > .d-flex .btn,
+    .ticket-admin-item > .d-flex form,
+    .ticket-admin-item > .d-flex form .btn {
+        width: 100%;
+    }
+
+    /* Check-in. */
+    .checkin-search {
+        flex-direction: column !important;
+    }
+
+    .checkin-search .btn,
+    .checkin-search .form-control {
+        width: 100% !important;
+        flex: 1 1 auto !important;
+    }
+
+    .ticket-result-head {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+
+    .ticket-meta {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Presença. */
+    .attendance-config {
+        padding: 16px !important;
+    }
+
+    .attendance-sheet > .p-4 {
+        padding: 18px !important;
+    }
+
+    /* Configurações. */
+    .settings-row,
+    .system-settings-list > div {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 4px !important;
+        align-items: start !important;
+    }
+
+    .settings-value,
+    .system-settings-list strong {
+        text-align: left !important;
+    }
+
+    /* Modais importantes: botões com área de toque previsível. */
+    .user-modal .modal-footer,
+    #addParticipantModal .modal-footer,
+    .qr-modal-content .modal-footer {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px !important;
+    }
+
+    .user-modal .modal-footer .btn,
+    #addParticipantModal .modal-footer .btn,
+    .qr-modal-content .modal-footer .btn,
+    .qr-modal-content .modal-footer a {
+        width: 100%;
+        margin: 0 !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .dashboard-grid,
+    .dash-grid,
+    .system-summary-grid,
+    .system-maintenance-status,
+    .responses-metrics,
+    .maintenance-status,
+    .appearance-upload-grid,
+    .appearance-color-grid,
+    .ticket-color-row,
+    .upload-grid,
+    .color-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .forms-table { min-width: 760px !important; }
+    .responses-table { min-width: 700px !important; }
+
+    .form-editor-tabs {
+        width: calc(100% + 24px) !important;
+        margin-left: -12px !important;
+        margin-right: -12px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        gap: 18px !important;
+    }
+
+    .field-sort-actions {
+        justify-content: stretch !important;
+    }
+
+    .field-sort-actions .btn,
+    .field-sort-actions form,
+    .field-sort-actions form .btn {
+        flex: 1 1 auto;
+    }
+
+    .field-width-control {
+        width: 100%;
+        margin-bottom: 2px;
+    }
+
+    .field-width-control select {
+        flex: 1 1 auto;
+        width: auto !important;
+    }
+
+    .ticket-preview-shell,
+    .appearance-preview-card {
+        padding: 14px !important;
+    }
+
+    .ticket-preview-content {
+        padding: 20px !important;
+    }
+
+    .ticket-preview-code {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+    }
+
+    .pricing-item-actions {
+        display: grid !important;
+        grid-template-columns: 1fr auto;
+        align-items: center !important;
+    }
+
+    .pricing-item-actions form,
+    .pricing-item-actions form .btn {
+        width: 100%;
+    }
+
+    .chart-head,
+    .chart-summary {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+    }
+
+    .ticket-admin-item > .d-flex {
+        grid-template-columns: 1fr !important;
+    }
+
+    .user-card {
+        padding: 14px !important;
+    }
+
+    .admin-content .row.g-3 > [class*="col-"] > .card .d-flex.flex-wrap.gap-2 {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    .admin-content .row.g-3 > [class*="col-"] > .card .d-flex.flex-wrap.gap-2 .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .attendance-chip {
+        width: 100%;
+        max-width: 100% !important;
+        border-radius: 12px !important;
+    }
+
+    .attendance-chip span {
+        white-space: normal !important;
+    }
+
+    .system-content > form > .d-flex.gap-2,
+    .system-content > form > .d-flex.justify-content-between {
+        flex-direction: column !important;
+    }
+
+    .system-content > form > .d-flex.gap-2 .btn,
+    .system-content > form > .d-flex.justify-content-between .btn,
+    .system-content .card form > .btn.btn-primary.mt-4 {
+        width: 100%;
+    }
+
+    .user-modal .modal-footer,
+    #addParticipantModal .modal-footer,
+    .qr-modal-content .modal-footer {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 389.98px) {
+    .admin-content .row.g-3 > [class*="col-"] > .card .d-flex.flex-wrap.gap-2,
+    .pricing-item-actions {
+        grid-template-columns: 1fr !important;
+    }
+}

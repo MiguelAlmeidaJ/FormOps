@@ -97,5 +97,5 @@ require __DIR__ . '/../../layouts/system-sidebar.php';
     <div class="col-md-6"><label for="email" class="form-label">E-mail</label><input type="email" id="email" name="email" class="form-control" value="<?= htmlspecialchars($fieldEmail) ?>" required></div>
     <div class="col-md-6"><label for="role" class="form-label">Role</label><select id="role" name="role" class="form-select" required><?php foreach ($allowedRoles as $allowedRole): ?><option value="<?= $allowedRole ?>" <?= $fieldRole === $allowedRole ? 'selected' : '' ?>><?= ucfirst($allowedRole) ?></option><?php endforeach; ?></select></div>
     <div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" name="is_active" id="is_active" <?= $fieldActive ? 'checked' : '' ?>><label class="form-check-label" for="is_active">Usuário ativo</label></div></div>
-</div><button type="submit" class="btn btn-primary mt-4">Salvar alterações</button></form></div></div>
+</div><div class="d-grid d-sm-block mt-4"><button type="submit" class="btn btn-primary">Salvar alterações</button></div></form></div></div>
 <?php require __DIR__ . '/../../layouts/system-footer.php'; ?>

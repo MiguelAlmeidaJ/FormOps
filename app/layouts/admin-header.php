@@ -15,12 +15,16 @@ $maintenanceTenantName = $_SESSION['maintenance_tenant_name'] ?? null;
     <meta charset="UTF-8">
     <title><?= htmlspecialchars($pageTitle) ?> · FormOps</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#012672">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" href="assets/clients/formops/favicon-formops.png">
     <link rel="stylesheet" href="assets/brand.css">
     <?php foreach ($pageStyles as $style): ?>
         <link rel="stylesheet" href="<?= htmlspecialchars($style) ?>">
     <?php endforeach; ?>
+    <link rel="stylesheet" href="assets/system-theme.css">
+    <link rel="stylesheet" href="assets/system-mobile.css">
+    <link rel="stylesheet" href="assets/system-mobile-pages.css">
 </head>
 <body>
 

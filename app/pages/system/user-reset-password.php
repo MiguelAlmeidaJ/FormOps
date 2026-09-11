@@ -83,7 +83,7 @@ require __DIR__ . '/../../layouts/system-sidebar.php';
                 <div class="col-md-6"><label for="password" class="form-label">Nova senha</label><input type="password" id="password" name="password" class="form-control" minlength="8" required></div>
                 <div class="col-md-6"><label for="password_confirmation" class="form-label">Confirmar nova senha</label><input type="password" id="password_confirmation" name="password_confirmation" class="form-control" minlength="8" required></div>
             </div>
-            <button type="submit" class="btn btn-warning mt-4">Resetar senha</button>
+            <div class="d-grid d-sm-block mt-4"><button type="submit" class="btn btn-warning">Resetar senha</button></div>
         </form>
     </div>
 </div>
