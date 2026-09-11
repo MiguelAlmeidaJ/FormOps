@@ -24,6 +24,7 @@ $maintenanceTenantName = $_SESSION['maintenance_tenant_name'] ?? null;
     <?php endforeach; ?>
     <link rel="stylesheet" href="assets/system-theme.css">
     <link rel="stylesheet" href="assets/system-mobile.css">
+    <link rel="stylesheet" href="assets/system-mobile-pages.css">
 </head>
 <body>
 
