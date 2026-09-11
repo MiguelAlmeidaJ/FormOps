@@ -1,9 +1,33 @@
 (() => {
-    const sidebar = document.querySelector('.admin-sidebar, .system-sidebar');
-    const topbar = document.querySelector('.admin-topbar, .system-topbar');
-    if (!sidebar || !topbar) return;
+    if (document.body.dataset.formopsResponsiveReady === '1') return;
+    document.body.dataset.formopsResponsiveReady = '1';
 
     const media = window.matchMedia('(max-width: 991.98px)');
+    const sidebar = document.querySelector('.admin-sidebar, .system-sidebar');
+    const topbar = document.querySelector('.admin-topbar, .system-topbar');
+
+    const enhanceScrollableTables = () => {
+        document.querySelectorAll('.admin-content table, .system-content table').forEach((table, index) => {
+            let shell = table.closest('.table-responsive');
+
+            if (!shell) {
+                shell = table.closest('.w-100.overflow-hidden, .forms-table-card, .dashboard-card, .system-log-table-wrap');
+            }
+
+            if (!shell) shell = table.parentElement;
+            if (!shell) return;
+
+            shell.classList.add('mobile-table-scroll');
+            if (!shell.hasAttribute('tabindex')) shell.setAttribute('tabindex', '0');
+            if (!shell.hasAttribute('role')) shell.setAttribute('role', 'region');
+            if (!shell.hasAttribute('aria-label')) shell.setAttribute('aria-label', `Tabela rolável ${index + 1}`);
+        });
+    };
+
+    enhanceScrollableTables();
+
+    if (!sidebar || !topbar) return;
+
     const isAdmin = sidebar.classList.contains('admin-sidebar');
     const topbarRow = isAdmin
         ? topbar.querySelector('.container-fluid > .d-flex')
@@ -55,12 +79,14 @@
         document.body.classList.remove('mobile-nav-open');
         toggle.setAttribute('aria-expanded', 'false');
         toggle.setAttribute('aria-label', 'Abrir menu');
+
         if (media.matches) sidebar.setAttribute('aria-hidden', 'true');
         else sidebar.removeAttribute('aria-hidden');
 
-        if (restoreFocus && lastFocused instanceof HTMLElement) {
+        if (restoreFocus && lastFocused instanceof HTMLElement && document.contains(lastFocused)) {
             lastFocused.focus({ preventScroll: true });
         }
+
         lastFocused = null;
     };
 
@@ -84,8 +110,9 @@
 
         if (event.key !== 'Tab' || !media.matches || !document.body.classList.contains('mobile-nav-open')) return;
 
-        const focusable = Array.from(sidebar.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
-            .filter((element) => element.offsetParent !== null);
+        const focusable = Array.from(
+            sidebar.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        ).filter((element) => element.offsetParent !== null);
 
         if (!focusable.length) return;
         const first = focusable[0];
@@ -117,5 +144,7 @@
         media.addListener(syncMode);
     }
 
+    window.addEventListener('pagehide', () => closeMenu(false));
+    window.addEventListener('pageshow', syncMode);
     syncMode();
 })();
