@@ -1,2 +1,5 @@
 /app/config/mail.local.php
+/.env
+/.env.*
+!/.env.example
 *.zip
