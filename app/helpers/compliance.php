@@ -17,6 +17,8 @@ function formOpsEnsureLgpdInfrastructure(PDO $pdo): void
             return;
         }
 
+        // As colunas são nulas de propósito: respostas históricas permanecem intactas
+        // e não recebem um aceite retroativo que nunca aconteceu.
         $columns = [
             'lgpd_consent' => 'TINYINT(1) NULL DEFAULT NULL AFTER submitted_by_ip',
             'lgpd_consent_at' => 'DATETIME NULL DEFAULT NULL AFTER lgpd_consent',
@@ -29,21 +31,9 @@ function formOpsEnsureLgpdInfrastructure(PDO $pdo): void
                 $pdo->exec('ALTER TABLE form_responses ADD COLUMN ' . $column . ' ' . $definition);
             }
         }
-
-        $triggerName = 'trg_form_responses_lgpd_before_insert';
-        $triggerExists = $pdo->prepare('SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = ?');
-        $triggerExists->execute([$triggerName]);
-        if ((int) $triggerExists->fetchColumn() === 0) {
-            $pdo->exec(
-                'CREATE TRIGGER ' . $triggerName . ' BEFORE INSERT ON form_responses FOR EACH ROW '
-                . 'SET NEW.lgpd_consent = IF(COALESCE(@formops_lgpd_consent, 0) = 1, 1, NULL), '
-                . 'NEW.lgpd_consent_at = IF(COALESCE(@formops_lgpd_consent, 0) = 1, NOW(), NULL), '
-                . 'NEW.lgpd_policy_version = IF(COALESCE(@formops_lgpd_consent, 0) = 1, @formops_lgpd_policy_version, NULL)'
-            );
-        }
     } catch (Throwable $exception) {
-        // A validação do aceite continua ativa mesmo quando o usuário do banco
-        // não possui permissão para alterar o schema automaticamente.
+        // A validação do aceite continua ativa mesmo em uma instalação onde o
+        // usuário do banco não tenha permissão para alterar o schema sozinho.
         error_log('FormOps LGPD infrastructure warning: ' . $exception->getMessage());
     }
 }
@@ -53,22 +43,28 @@ function formOpsPublicConsentAccepted(): bool
     return isset($_POST['lgpd_consent']) && hash_equals('1', (string) $_POST['lgpd_consent']);
 }
 
-function formOpsSetLgpdRequestContext(PDO $pdo, bool $accepted): void
+function formOpsRecordConsent(PDO $pdo, array $responseIds): void
 {
-    try {
-        $stmt = $pdo->prepare('SET @formops_lgpd_consent = ?, @formops_lgpd_policy_version = ?');
-        $stmt->execute([$accepted ? 1 : 0, $accepted ? FORMOPS_PRIVACY_POLICY_VERSION : null]);
-    } catch (Throwable $exception) {
-        error_log('FormOps LGPD request context warning: ' . $exception->getMessage());
+    $responseIds = array_values(array_unique(array_filter(
+        array_map('intval', $responseIds),
+        static fn (int $id): bool => $id > 0
+    )));
+    if (!$responseIds) {
+        return;
     }
-}
 
-function formOpsClearLgpdRequestContext(PDO $pdo): void
-{
     try {
-        $pdo->exec('SET @formops_lgpd_consent = NULL, @formops_lgpd_policy_version = NULL');
+        $placeholders = implode(',', array_fill(0, count($responseIds), '?'));
+        $stmt = $pdo->prepare(
+            'UPDATE form_responses '
+            . 'SET lgpd_consent = 1, lgpd_consent_at = COALESCE(lgpd_consent_at, NOW()), lgpd_policy_version = ? '
+            . 'WHERE id IN (' . $placeholders . ')'
+        );
+        $stmt->execute(array_merge([FORMOPS_PRIVACY_POLICY_VERSION], $responseIds));
     } catch (Throwable $exception) {
-        error_log('FormOps LGPD request context cleanup warning: ' . $exception->getMessage());
+        // A resposta já foi confirmada pelo fluxo transacional do formulário.
+        // Não apagamos dados nem simulamos consentimento em registros antigos.
+        error_log('FormOps LGPD audit warning: ' . $exception->getMessage());
     }
 }
 
