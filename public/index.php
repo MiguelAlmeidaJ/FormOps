@@ -53,7 +53,6 @@ ensureTicketInfrastructure($pdo);
 ensurePricingInfrastructure($pdo);
 ensurePasswordResetInfrastructure($pdo);
 formOpsEnsureLgpdInfrastructure($pdo);
-formOpsClearLgpdRequestContext($pdo);
 
 $requestPath = rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
 $requestPath = '/' . ltrim(preg_replace('#/+#', '/', $requestPath), '/');
@@ -83,17 +82,22 @@ $servePublicForm = static function (string $tenantSlug, string $formSlug) use ($
     $_GET['tenant'] = $tenantSlug;
     $_GET['slug'] = $formSlug;
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (!formOpsPublicConsentAccepted()) {
-            formOpsRenderConsentRequired($tenantSlug, $formSlug);
-        }
-        formOpsSetLgpdRequestContext($pdo, true);
+    $acceptedPrivacy = $_SERVER['REQUEST_METHOD'] === 'POST' && formOpsPublicConsentAccepted();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$acceptedPrivacy) {
+        formOpsRenderConsentRequired($tenantSlug, $formSlug);
     }
 
     ob_start(static fn (string $html): string => formOpsInjectPublicCompliance($html, $tenantSlug, $formSlug));
     require __DIR__ . '/../app/pages/public/form-public.php';
+
+    // form-public.php mantém os IDs criados no mesmo escopo do include. Assim o
+    // aceite é registrado somente nas respostas realmente criadas por este POST,
+    // sem alterar respostas históricas nem inclusões administrativas.
+    if ($acceptedPrivacy && isset($createdResponseIds) && is_array($createdResponseIds)) {
+        formOpsRecordConsent($pdo, $createdResponseIds);
+    }
+
     ob_end_flush();
-    formOpsClearLgpdRequestContext($pdo);
     exit;
 };
 
