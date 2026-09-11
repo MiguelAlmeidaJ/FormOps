@@ -80,33 +80,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>Entrar · FormOps</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#012672">
 
-    <link 
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
     <link rel="icon" href="assets/clients/formops/favicon-formops.png">
     <link rel="stylesheet" href="assets/brand.css">
+    <link rel="stylesheet" href="assets/login.css">
 </head>
 <body class="formops-login-shell">
 
-<div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+<main class="formops-login-scene">
+    <div class="login-decoration login-decoration-left" aria-hidden="true"></div>
+    <div class="login-decoration login-decoration-right" aria-hidden="true"></div>
+    <div class="login-dots login-dots-left" aria-hidden="true"></div>
+    <div class="login-dots login-dots-right" aria-hidden="true"></div>
+    <div class="login-glass login-glass-one" aria-hidden="true"></div>
+    <div class="login-glass login-glass-two" aria-hidden="true"></div>
 
-    <div class="card formops-login-card">
-        <div class="card-body p-4 p-md-5">
-
-            <div class="text-center mb-4">
+    <section class="card formops-login-card" aria-labelledby="login-title">
+        <div class="card-body">
+            <header class="formops-login-header">
                 <img class="formops-logo formops-login-logo" src="assets/clients/formops/logo-formops.png" alt="FormOps">
-                <p class="formops-tagline mb-0">
-                    Crie. Organize. Colete.
-                </p>
-                <p class="small text-muted mb-0">
-                    Sua operação de formulários em um só lugar.
-                </p>
-            </div>
+                <h1 id="login-title" class="formops-login-title">Crie. Organize. Colete.</h1>
+                <p class="formops-login-subtitle">Sua operação de formulários em um só lugar.</p>
+            </header>
 
             <?php if (!empty($errors)): ?>
-                <div class="alert alert-danger">
+                <div class="alert alert-danger formops-login-alert" role="alert">
                     <?php foreach ($errors as $error): ?>
                         <div><?= htmlspecialchars($error) ?></div>
                     <?php endforeach; ?>
@@ -114,53 +117,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <?php if (!empty($_SESSION['login_success'])): ?>
-                <div class="alert alert-success"><?= htmlspecialchars($_SESSION['login_success']) ?></div>
+                <div class="alert alert-success formops-login-alert" role="status">
+                    <?= htmlspecialchars($_SESSION['login_success']) ?>
+                </div>
                 <?php unset($_SESSION['login_success']); ?>
             <?php endif; ?>
 
-            <form method="POST">
-
-                <div class="mb-3">
-                    <label for="email" class="form-label">E-mail</label>
-                    <input 
-                        type="email" 
-                        name="email" 
-                        id="email" 
-                        class="form-control"
-                        placeholder="seuemail@exemplo.com"
-                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-                        required
-                    >
+            <form method="POST" class="formops-login-form">
+                <div class="formops-field">
+                    <label for="email" class="form-label formops-field-label">E-mail</label>
+                    <input type="email" name="email" id="email" class="form-control formops-login-input" placeholder="seuemail@exemplo.com" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" autocomplete="email" inputmode="email" required autofocus>
                 </div>
 
-                <div class="mb-4">
-                    <label for="password" class="form-label">Senha</label>
-                    <input 
-                        type="password" 
-                        name="password" 
-                        id="password" 
-                        class="form-control"
-                        placeholder="Digite sua senha"
-                        required
-                    >
+                <div class="formops-field">
+                    <label for="password" class="form-label formops-field-label">Senha</label>
+                    <div class="formops-input-wrap">
+                        <input type="password" name="password" id="password" class="form-control formops-login-input formops-password-input" placeholder="Digite sua senha" autocomplete="current-password" required>
+                        <button type="button" class="formops-password-toggle" id="password-toggle" aria-label="Mostrar senha" aria-pressed="false">◉</button>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">
-                    Entrar
-                </button>
-
-                <a href="<?= htmlspecialchars(appUrl('recuperar-acesso')) ?>" class="btn btn-outline-secondary w-100 mt-2">
-                    Recuperar acesso
-                </a>
-
+                <button type="submit" class="btn formops-login-submit w-100">Entrar</button>
+                <a href="<?= htmlspecialchars(appUrl('recuperar-acesso')) ?>" class="btn formops-recovery-button w-100">Recuperar acesso</a>
             </form>
-
         </div>
-    </div>
+    </section>
+</main>
 
-</div>
+<script>
+(() => {
+    const password = document.getElementById('password');
+    const toggle = document.getElementById('password-toggle');
+    if (!password || !toggle) return;
+    toggle.addEventListener('click', () => {
+        const isHidden = password.type === 'password';
+        password.type = isHidden ? 'text' : 'password';
+        toggle.setAttribute('aria-pressed', String(isHidden));
+        toggle.setAttribute('aria-label', isHidden ? 'Ocultar senha' : 'Mostrar senha');
+    });
+})();
+</script>
 
 </body>
 </html>
-
-
