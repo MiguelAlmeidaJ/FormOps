@@ -97,7 +97,7 @@ require __DIR__ . '/../../layouts/system-sidebar.php';
                 <div class="col-md-6"><label for="role" class="form-label">Role</label><select id="role" name="role" class="form-select" required><?php foreach ($allowedRoles as $allowedRole): ?><option value="<?= $allowedRole ?>" <?= ($_POST['role'] ?? 'viewer') === $allowedRole ? 'selected' : '' ?>><?= ucfirst($allowedRole) ?></option><?php endforeach; ?></select></div>
                 <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="is_active" id="is_active" <?= !isset($_POST['name']) || isset($_POST['is_active']) ? 'checked' : '' ?>><label class="form-check-label" for="is_active">Usuário ativo</label></div></div>
             </div>
-            <button type="submit" class="btn btn-primary mt-4">Criar usuário</button>
+            <div class="d-grid d-sm-block mt-4"><button type="submit" class="btn btn-primary">Criar usuário</button></div>
         </form>
     </div>
 </div>
