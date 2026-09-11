@@ -3,6 +3,8 @@
     const topbar = document.querySelector('.admin-topbar, .system-topbar');
     if (!sidebar || !topbar) return;
 
+    document.body.classList.add('formops-mobile-nav-ready');
+
     const media = window.matchMedia('(max-width: 991.98px)');
     const isAdmin = sidebar.classList.contains('admin-sidebar');
     const topbarRow = isAdmin
