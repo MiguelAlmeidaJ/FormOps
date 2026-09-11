@@ -21,5 +21,6 @@ $pageStyles = $pageStyles ?? [];
         <link rel="stylesheet" href="<?= htmlspecialchars($style) ?>">
     <?php endforeach; ?>
     <link rel="stylesheet" href="assets/system-theme.css">
+    <link rel="stylesheet" href="assets/system-mobile.css">
 </head>
 <body><div class="system-wrapper">
