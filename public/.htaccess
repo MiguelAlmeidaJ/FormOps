@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Se for arquivo ou pasta real, não redireciona
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Todas as rotas vão para o index.php
+RewriteRule ^ index.php [QSA,L]
+
+DirectoryIndex index.php
+
+<Files .htaccess>
+    Require all denied
+</Files>

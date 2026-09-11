@@ -1,0 +1,1 @@
+ALTER TABLE forms ADD COLUMN closes_at DATETIME NULL AFTER is_active;

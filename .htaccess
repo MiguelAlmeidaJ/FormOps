@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Mantém arquivos públicos reais acessíveis quando o projeto é servido pela raiz.
+RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+RewriteRule ^public/ - [L]
+
+# Todas as demais URLs passam pelo front controller.
+RewriteRule ^ index.php [QSA,L]
+
+DirectoryIndex index.php
+
+<FilesMatch "^\.(env|git|htaccess)">
+    Require all denied
+</FilesMatch>
