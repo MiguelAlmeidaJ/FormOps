@@ -42,8 +42,8 @@ function formOpsEnsureLgpdInfrastructure(PDO $pdo): void
             );
         }
     } catch (Throwable $exception) {
-        // A camada de consentimento continua bloqueando submissões sem aceite mesmo
-        // quando o usuário do banco não possui permissão para alterar o schema.
+        // A validação do aceite continua ativa mesmo quando o usuário do banco
+        // não possui permissão para alterar o schema automaticamente.
         error_log('FormOps LGPD infrastructure warning: ' . $exception->getMessage());
     }
 }
@@ -115,6 +115,7 @@ function formOpsInjectPublicCompliance(string $html, string $tenantSlug, string 
     $cookieUrl = appUrl('politica-de-cookies', array_filter(['tenant' => $tenantSlug]));
     $privacyUrlSafe = htmlspecialchars($privacyUrl, ENT_QUOTES, 'UTF-8');
     $cookieUrlSafe = htmlspecialchars($cookieUrl, ENT_QUOTES, 'UTF-8');
+    $scriptUrlSafe = htmlspecialchars(appUrl('assets/public-compliance.js'), ENT_QUOTES, 'UTF-8');
     $checked = formOpsPublicConsentAccepted() ? ' checked' : '';
 
     $consentMarkup = <<<HTML
@@ -153,11 +154,8 @@ HTML;
     </div>
     <button type="button" class="formops-cookie-button" data-formops-cookie-ack>Entendi</button>
 </div>
-<script src="<?= htmlspecialchars(appUrl('assets/public-compliance.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="{$scriptUrlSafe}"></script>
 HTML;
-        // Heredoc não interpreta PHP; substitui o placeholder do src antes de enviar.
-        $scriptUrl = htmlspecialchars(appUrl('assets/public-compliance.js'), ENT_QUOTES, 'UTF-8');
-        $banner = str_replace('<?= htmlspecialchars(appUrl(\'assets/public-compliance.js\'), ENT_QUOTES, \'UTF-8\') ?>', $scriptUrl, $banner);
         $html = str_replace('</body>', $banner . "\n</body>", $html);
     }
 
