@@ -11,6 +11,77 @@ function ticketDetailsSelect(): string
             INNER JOIN tenants t ON t.id = ft.tenant_id';
 }
 
+function ticketCheckinAccessTokenInfo(PDO $pdo, int $tenantId, int $formId): ?array
+{
+    $stmt = $pdo->prepare(
+        'SELECT * FROM form_checkin_access_tokens
+         WHERE tenant_id = ? AND form_id = ? AND is_active = 1
+         LIMIT 1'
+    );
+    $stmt->execute([$tenantId, $formId]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+function rotateTicketCheckinAccessToken(PDO $pdo, int $tenantId, int $formId, ?int $userId = null): string
+{
+    $rawToken = bin2hex(random_bytes(32));
+    $tokenHash = hash('sha256', $rawToken);
+    $tokenPrefix = substr($rawToken, 0, 10);
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO form_checkin_access_tokens
+            (tenant_id, form_id, token_hash, token_prefix, is_active, created_by, created_at, regenerated_at)
+         VALUES (?, ?, ?, ?, 1, ?, NOW(), NOW())
+         ON DUPLICATE KEY UPDATE
+            token_hash = VALUES(token_hash),
+            token_prefix = VALUES(token_prefix),
+            is_active = 1,
+            created_by = VALUES(created_by),
+            regenerated_at = NOW(),
+            last_used_at = NULL'
+    );
+    $stmt->execute([$tenantId, $formId, $tokenHash, $tokenPrefix, $userId]);
+    return $rawToken;
+}
+
+function findTicketCheckinAccessByToken(PDO $pdo, string $rawToken): ?array
+{
+    $rawToken = strtolower(trim($rawToken));
+    if (!preg_match('/^[a-f0-9]{64}$/', $rawToken)) {
+        return null;
+    }
+
+    $tokenHash = hash('sha256', $rawToken);
+    $stmt = $pdo->prepare(
+        'SELECT cat.*, f.title AS form_title, f.ticket_title, f.ticket_event_at, f.ticket_location,
+                t.name AS tenant_name
+         FROM form_checkin_access_tokens cat
+         INNER JOIN forms f ON f.id = cat.form_id AND f.tenant_id = cat.tenant_id
+         INNER JOIN tenants t ON t.id = cat.tenant_id
+         WHERE cat.token_hash = ? AND cat.is_active = 1 AND f.ticket_enabled = 1
+         LIMIT 1'
+    );
+    $stmt->execute([$tokenHash]);
+    $access = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    if ($access) {
+        $pdo->prepare('UPDATE form_checkin_access_tokens SET last_used_at = NOW() WHERE id = ?')
+            ->execute([(int) $access['id']]);
+    }
+    return $access;
+}
+
+function ticketCheckinSnapshot(PDO $pdo, int $tenantId, int $formId): array
+{
+    $stmt = $pdo->prepare(
+        'SELECT id, code, token, participant_name, participant_email, status, issued_at, checked_in_at
+         FROM form_tickets
+         WHERE tenant_id = ? AND form_id = ?
+         ORDER BY id ASC'
+    );
+    $stmt->execute([$tenantId, $formId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 function findTicketByToken(PDO $pdo, string $token): ?array
 {
     $token = strtolower(trim($token));
