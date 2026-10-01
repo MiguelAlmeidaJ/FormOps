@@ -244,13 +244,28 @@ require __DIR__ . '/../../layouts/admin-sidebar.php';
         .responses-table .actions-column { width: 15%; }
     }
     @media (max-width: 767px) {
-        .responses-hero{padding:21px 18px}.responses-hero-top{display:block}.responses-add{width:100%;margin-top:17px}.responses-filter-grid,.responses-metrics{grid-template-columns:1fr}.responses-metric{min-height:72px}
-        .responses-table .contact-column { display: none; }
-        .responses-table .select-column { width: 9%; }
-        .responses-table .number-column { width: 13%; }
-        .responses-table .participant-column { width: 33%; }
-        .responses-table .date-column { width: 25%; }
-        .responses-table .actions-column { width: 20%; }
+        .responses-hero{padding:18px 14px;border-radius:16px}.responses-hero-top{display:block}.responses-add{width:100%;margin-top:17px}.responses-filter-grid,.responses-metrics{grid-template-columns:1fr}.responses-metric{min-height:72px}
+        .card-header{padding:16px 14px!important;align-items:flex-start!important}
+        .card-header > .d-flex{width:100%;justify-content:space-between}
+        .response-bulk-delete{max-width:calc(100vw - 105px);overflow:hidden;text-overflow:ellipsis}
+        .responses-table{display:block;width:100%;table-layout:auto}
+        .responses-table thead{display:none}
+        .responses-table tbody{display:grid;gap:10px;padding:10px;background:#f6f8fb}
+        .responses-table tr{position:relative;display:block;width:100%;padding:14px 14px 13px 48px;border:1px solid #e3e8ef;border-radius:14px;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.035)}
+        .responses-table td{display:block;width:auto!important;min-width:0;border:0!important;padding:0!important;text-align:left!important;overflow:visible}
+        .responses-table .contact-column,.responses-table .info-column{display:none}
+        .responses-table .select-column{position:absolute;left:14px;top:16px;width:20px!important}
+        .responses-table .number-column{display:inline-flex;align-items:center;min-height:24px;margin-bottom:7px;color:#64748b;font-size:.78rem;font-weight:800!important}
+        .responses-table .participant-column{padding-right:0!important}
+        .responses-table .participant-column .response-primary{font-size:.98rem;line-height:1.3;color:#0f2f78;font-weight:750}
+        .responses-table .participant-column .response-secondary{font-size:.78rem}
+        .responses-table .date-column{display:flex;align-items:center;gap:8px;margin-top:9px;color:#64748b;font-size:.78rem}
+        .responses-table .date-column .response-primary,.responses-table .date-column .response-secondary{font-size:.78rem;line-height:1.2;margin:0;color:#64748b}
+        .responses-table .date-column .response-secondary::before{content:"•";margin-right:8px;color:#cbd5e1}
+        .responses-table .actions-column{margin-top:12px;padding-top:11px!important;border-top:1px solid #eef2f7!important}
+        .response-row-actions{justify-content:flex-start;gap:8px;flex-wrap:wrap}
+        .response-icon-action{width:38px;height:38px;border-radius:10px}
+        .response-payment-state{margin-top:7px}
         #addParticipantModal .modal-body { padding:18px 16px; }
         #addParticipantModal .modal-header { padding:16px; }
         #addParticipantModal .modal-footer { position:sticky; bottom:0; z-index:2; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid #E5E7EB; box-shadow:0 -8px 22px rgba(15,23,42,.08); }
