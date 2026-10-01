@@ -90,7 +90,25 @@ function ensureTicketInfrastructure(PDO $pdo): void
     $hasLastColumn = (int) $stmt->fetchColumn() > 0;
     $stmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
     $stmt->execute(['form_tickets']);
-    if ($hasLastColumn && (int) $stmt->fetchColumn() > 0) {
+    $hasTicketsTable = (int) $stmt->fetchColumn() > 0;
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS form_checkin_access_tokens (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        tenant_id INT NOT NULL,
+        form_id INT NOT NULL,
+        token_hash CHAR(64) NOT NULL,
+        token_prefix VARCHAR(12) NOT NULL,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_by INT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        regenerated_at DATETIME NULL,
+        last_used_at DATETIME NULL,
+        UNIQUE KEY uq_checkin_access_form (tenant_id, form_id),
+        UNIQUE KEY uq_checkin_access_token_hash (token_hash),
+        KEY idx_checkin_access_active (tenant_id, form_id, is_active)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    if ($hasLastColumn && $hasTicketsTable) {
         return;
     }
 
