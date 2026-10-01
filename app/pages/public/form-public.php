@@ -231,6 +231,73 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
     $couponScopes = pricingCouponScopes($pdo, (int) $tenant['id'], (int) $form['id']);
 }
 
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && (string) ($_POST['pricing_preview'] ?? '') === '1'
+    && (int) ($form['payment_enabled'] ?? 0) === 1
+) {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $previewPeopleCount = (int) ($_POST['people_count'] ?? 1);
+    $previewPeopleCount = (int) ($form['allow_multiple_people'] ?? 0) === 1
+        ? max(1, min(20, $previewPeopleCount))
+        : 1;
+    $previewCouponCode = $couponScopes['registration']
+        ? pricingNormalizeCode($_POST['coupon_code'] ?? '')
+        : '';
+    $previewParticipantCoupons = [];
+
+    if ($couponScopes['participant']) {
+        foreach (range(1, $previewPeopleCount) as $participantIndex) {
+            $previewParticipantCoupons[$participantIndex] = pricingNormalizeCode(
+                $_POST['participant_coupon'][$participantIndex] ?? ''
+            );
+        }
+    }
+
+    try {
+        $previewQuote = formPricingQuote(
+            $pdo,
+            $form,
+            $previewPeopleCount,
+            $previewCouponCode,
+            false,
+            $previewParticipantCoupons
+        );
+
+        echo json_encode([
+            'ok' => true,
+            'quote' => [
+                'people_count' => (int) ($previewQuote['people_count'] ?? $previewPeopleCount),
+                'unit_price' => (float) ($previewQuote['unit_price'] ?? 0),
+                'subtotal' => (float) ($previewQuote['subtotal'] ?? 0),
+                'lot_name' => $previewQuote['lot_name'] ?? null,
+                'group_discount' => (float) ($previewQuote['group_discount'] ?? 0),
+                'registration_coupon_discount' => (float) ($previewQuote['registration_coupon_discount'] ?? 0),
+                'participant_coupon_discount' => (float) ($previewQuote['participant_coupon_discount'] ?? 0),
+                'coupon_code' => $previewQuote['coupon_code'] ?? null,
+                'coupon_type' => $previewQuote['coupon_type'] ?? null,
+                'coupon_value' => $previewQuote['coupon_value'] ?? null,
+                'participants' => $previewQuote['participants'] ?? [],
+                'total' => (float) ($previewQuote['total'] ?? 0),
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    } catch (DomainException $exception) {
+        http_response_code(422);
+        echo json_encode([
+            'ok' => false,
+            'message' => $exception->getMessage(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    } catch (Throwable $exception) {
+        http_response_code(500);
+        echo json_encode([
+            'ok' => false,
+            'message' => 'Não foi possível recalcular o valor agora. Tente novamente.',
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $formCompleted) {
     $errors[] = 'Este formulário já foi concluído e não aceita novas respostas.';
 }
@@ -1151,11 +1218,12 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                                     <div class="fw-semibold mb-1">Pagamento</div>
                                     <?php if (!empty($pricingPreview['lot_name'])): ?><div class="pricing-lot-badge">Lote atual: <?= htmlspecialchars($pricingPreview['lot_name']) ?></div><?php endif; ?>
                                     <?php if ($pricingAvailabilityError): ?><div class="alert alert-warning small mt-3 mb-0"><?= htmlspecialchars($pricingAvailabilityError) ?></div><?php endif; ?>
+                                    <div class="alert small mt-3 mb-0" data-pricing-feedback hidden></div>
                                     <div class="pricing-summary">
                                         <div class="pricing-row"><span>R$ <?= number_format($previewAmount, 2, ',', '.') ?> × <span data-pricing-people><?= $previewPeople ?></span> pessoa(s)</span><strong data-pricing-subtotal>R$ <?= number_format($previewSubtotal, 2, ',', '.') ?></strong></div>
                                         <div class="pricing-row discount" data-group-discount-row <?= empty($pricingPreview['group_discount']) ? 'hidden' : '' ?>><span>Desconto para grupo</span><strong data-group-discount>− R$ <?= number_format((float) ($pricingPreview['group_discount'] ?? 0), 2, ',', '.') ?></strong></div>
                                         <div class="pricing-row discount" data-participant-coupon-discount-row <?= empty($pricingPreview['participant_coupon_discount']) ? 'hidden' : '' ?>><span>Cupons individuais</span><strong data-participant-coupon-discount>− R$ <?= number_format((float) ($pricingPreview['participant_coupon_discount'] ?? 0), 2, ',', '.') ?></strong></div>
-                                        <div class="pricing-row discount" data-coupon-discount-row <?= empty($pricingPreview['registration_coupon_discount']) ? 'hidden' : '' ?>><span>Cupom da inscrição <?= htmlspecialchars((string) ($pricingPreview['coupon_code'] ?? '')) ?></span><strong data-coupon-discount>− R$ <?= number_format((float) ($pricingPreview['registration_coupon_discount'] ?? 0), 2, ',', '.') ?></strong></div>
+                                        <div class="pricing-row discount" data-coupon-discount-row <?= empty($pricingPreview['registration_coupon_discount']) ? 'hidden' : '' ?>><span data-registration-coupon-label>Cupom da inscrição<?= !empty($pricingPreview['coupon_code']) ? ' ' . htmlspecialchars((string) $pricingPreview['coupon_code']) : '' ?></span><strong data-coupon-discount>− R$ <?= number_format((float) ($pricingPreview['registration_coupon_discount'] ?? 0), 2, ',', '.') ?></strong></div>
                                         <div class="pricing-row total"><span>Total</span><strong data-payment-total>R$ <?= number_format($previewTotal, 2, ',', '.') ?></strong></div>
                                     </div>
                                     <?php if ($couponScopes['registration']): ?><label class="coupon-control"><span class="fw-semibold small">Cupom da inscrição</span><input class="form-control" type="text" name="coupon_code" maxlength="80" value="<?= htmlspecialchars($_POST['coupon_code'] ?? '') ?>" placeholder="Digite o código, se possuir"><small class="text-muted">Este cupom será aplicado ao total do grupo.</small></label><?php endif; ?>
@@ -1450,6 +1518,91 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                 if (couponRow) couponRow.hidden = couponDiscount <= 0;
                 if (couponTarget) couponTarget.textContent = '− ' + couponDiscount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             }
+
+            let pricingPreviewTimer = null;
+            let pricingPreviewController = null;
+
+            function hasTypedCoupon() {
+                return Array.from(document.querySelectorAll('input[name="coupon_code"], input[name^="participant_coupon["]'))
+                    .some(input => String(input.value || '').trim() !== '');
+            }
+
+            function setPricingFeedback(message = '', type = 'success') {
+                const preview = document.getElementById('paymentPreview');
+                const feedback = preview?.querySelector('[data-pricing-feedback]');
+                if (!feedback) return;
+                feedback.hidden = message === '';
+                feedback.textContent = message;
+                feedback.classList.remove('alert-success', 'alert-danger', 'alert-warning');
+                if (message !== '') feedback.classList.add('alert-' + type);
+            }
+
+            function applyPricingQuote(quote) {
+                const preview = document.getElementById('paymentPreview');
+                if (!preview || !quote) return;
+
+                preview.dataset.amount = String(Number(quote.unit_price || 0));
+                preview.dataset.couponType = quote.coupon_type || '';
+                preview.dataset.couponValue = String(Number(quote.coupon_value || 0));
+                preview.dataset.participantCoupons = JSON.stringify(quote.participants || {});
+
+                const couponLabel = preview.querySelector('[data-registration-coupon-label]');
+                if (couponLabel) {
+                    couponLabel.textContent = 'Cupom da inscrição' + (quote.coupon_code ? ' ' + quote.coupon_code : '');
+                }
+
+                updatePaymentTotal();
+            }
+
+            async function refreshPricingPreview() {
+                const form = document.getElementById('publicForm');
+                const preview = document.getElementById('paymentPreview');
+                if (!form || !preview) return;
+
+                if (pricingPreviewController) pricingPreviewController.abort();
+                pricingPreviewController = new AbortController();
+
+                const body = new FormData();
+                body.set('pricing_preview', '1');
+                body.set('people_count', String(peopleCountValue()));
+
+                const registrationCoupon = form.querySelector('input[name="coupon_code"]');
+                if (registrationCoupon) body.set('coupon_code', registrationCoupon.value || '');
+
+                form.querySelectorAll('input[name^="participant_coupon["]').forEach(input => {
+                    const panel = input.closest('[data-person-panel]');
+                    if (panel && panel.hidden) return;
+                    body.append(input.name, input.value || '');
+                });
+
+                try {
+                    const response = await fetch(window.location.href, {
+                        method: 'POST',
+                        body,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        signal: pricingPreviewController.signal,
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || !payload.ok) throw new Error(payload.message || 'Não foi possível validar o cupom.');
+
+                    applyPricingQuote(payload.quote);
+                    setPricingFeedback(hasTypedCoupon() ? 'Cupom aplicado automaticamente.' : '', 'success');
+                } catch (error) {
+                    if (error?.name === 'AbortError') return;
+                    setPricingFeedback(error?.message || 'Não foi possível recalcular o valor agora.', 'danger');
+                }
+            }
+
+            function schedulePricingPreview() {
+                clearTimeout(pricingPreviewTimer);
+                pricingPreviewTimer = setTimeout(refreshPricingPreview, 350);
+            }
+
+            document.querySelectorAll('input[name="coupon_code"], input[name^="participant_coupon["]').forEach(input => {
+                input.addEventListener('input', schedulePricingPreview);
+                input.addEventListener('change', schedulePricingPreview);
+            });
+
             function syncPeopleCount() {
                 if (!peopleCountSelect) {
                     updateConditions();
@@ -1468,8 +1621,14 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
             }
 
             personTabs.forEach(tab => tab.querySelector('.nav-link')?.addEventListener('click', () => activatePerson(Number(tab.dataset.personTab))));
-            peopleCountSelect?.addEventListener('input', syncPeopleCount);
-            peopleCountSelect?.addEventListener('change', syncPeopleCount);
+            peopleCountSelect?.addEventListener('input', () => {
+                syncPeopleCount();
+                schedulePricingPreview();
+            });
+            peopleCountSelect?.addEventListener('change', () => {
+                syncPeopleCount();
+                schedulePricingPreview();
+            });
             peopleCountSelect?.addEventListener('blur', normalizePeopleCount);
             syncPeopleCount();
         })();
