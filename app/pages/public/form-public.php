@@ -174,6 +174,23 @@ function fieldValue(array $field, ?int $personIndex = null)
     return $value;
 }
 
+function pricingParticipantEligibilityValues(array $fields, int $peopleCount, bool $allowMultiplePeople): array
+{
+    $values = [];
+    foreach (range(1, max(1, $peopleCount)) as $personIndex) {
+        foreach ($fields as $field) {
+            if (($field['type'] ?? '') !== 'date') continue;
+            $fieldId = (int) ($field['id'] ?? 0);
+            if ($fieldId <= 0) continue;
+            $values[$personIndex][$fieldId] = (string) fieldValue(
+                $field,
+                $allowMultiplePeople ? $personIndex : null
+            );
+        }
+    }
+    return $values;
+}
+
 function conditionalComparableValues($value): array
 {
     $values = is_array($value) ? $value : [$value];
@@ -256,13 +273,19 @@ if (
     }
 
     try {
+        $previewEligibilityValues = pricingParticipantEligibilityValues(
+            $answerFields,
+            $previewPeopleCount,
+            (int) ($form['allow_multiple_people'] ?? 0) === 1
+        );
         $previewQuote = formPricingQuote(
             $pdo,
             $form,
             $previewPeopleCount,
             $previewCouponCode,
             false,
-            $previewParticipantCoupons
+            $previewParticipantCoupons,
+            $previewEligibilityValues
         );
 
         echo json_encode([
@@ -316,8 +339,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$formCompleted) {
             $participantCouponCodes[$participantIndex] = pricingNormalizeCode($_POST['participant_coupon'][$participantIndex] ?? '');
         }
     }
+    $participantEligibilityValues = pricingParticipantEligibilityValues($answerFields, $peopleCount, $allowMultiplePeople);
     try {
-        $pricingQuote = $paymentEnabled ? formPricingQuote($pdo, $form, $peopleCount, $couponCode, false, $participantCouponCodes) : null;
+        $pricingQuote = $paymentEnabled ? formPricingQuote($pdo, $form, $peopleCount, $couponCode, false, $participantCouponCodes, $participantEligibilityValues) : null;
     } catch (DomainException $exception) {
         $errors[] = $exception->getMessage();
     }
@@ -376,7 +400,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$formCompleted) {
             $lockedForm = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$lockedForm) throw new DomainException('Este formulário não está mais disponível.');
             if ($paymentEnabled) {
-                $pricingQuote = formPricingQuote($pdo, $lockedForm, $peopleCount, $couponCode, true, $participantCouponCodes);
+                $pricingQuote = formPricingQuote($pdo, $lockedForm, $peopleCount, $couponCode, true, $participantCouponCodes, $participantEligibilityValues);
                 $paymentAmount = (float) $pricingQuote['unit_price'];
                 $paymentTotal = (float) $pricingQuote['total'];
             }
@@ -630,7 +654,8 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                     $previewParticipantCoupons[$participantIndex] = pricingNormalizeCode($_POST['participant_coupon'][$participantIndex] ?? '');
                 }
             }
-            $pricingPreview = formPricingQuote($pdo, $form, $initialPeopleCount, $couponScopes['registration'] ? pricingNormalizeCode($_POST['coupon_code'] ?? '') : '', false, $previewParticipantCoupons);
+            $previewEligibilityValues = pricingParticipantEligibilityValues($answerFields, $initialPeopleCount, $allowMultiplePeople);
+            $pricingPreview = formPricingQuote($pdo, $form, $initialPeopleCount, $couponScopes['registration'] ? pricingNormalizeCode($_POST['coupon_code'] ?? '') : '', false, $previewParticipantCoupons, $previewEligibilityValues);
         } catch (DomainException $exception) {
             $pricingAvailabilityError = $exception->getMessage();
         }
@@ -1575,6 +1600,13 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                     body.append(input.name, input.value || '');
                 });
 
+                form.querySelectorAll('[data-date-input]').forEach(input => {
+                    const panel = input.closest('[data-person-panel]');
+                    const wrapper = input.closest('.form-field-wrapper');
+                    if ((panel && panel.hidden) || (wrapper && wrapper.hidden) || input.disabled) return;
+                    body.append(input.name, input.value || '');
+                });
+
                 try {
                     const response = await fetch(window.location.href, {
                         method: 'POST',
@@ -1612,9 +1644,10 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                 pricingPreviewTimer = setTimeout(refreshPricingPreview, 350);
             }
 
-            document.querySelectorAll('input[name="coupon_code"], input[name^="participant_coupon["]').forEach(input => {
+            document.querySelectorAll('input[name="coupon_code"], input[name^="participant_coupon["], [data-date-input]').forEach(input => {
                 input.addEventListener('input', schedulePricingPreview);
                 input.addEventListener('change', schedulePricingPreview);
+                input.addEventListener('blur', schedulePricingPreview);
             });
 
             function syncPeopleCount() {
