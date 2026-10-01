@@ -82,12 +82,17 @@ $servePublicForm = static function (string $tenantSlug, string $formSlug) use ($
     $_GET['tenant'] = $tenantSlug;
     $_GET['slug'] = $formSlug;
 
+    $isPricingPreview = $_SERVER['REQUEST_METHOD'] === 'POST'
+        && (string) ($_POST['pricing_preview'] ?? '') === '1';
+
     $acceptedPrivacy = $_SERVER['REQUEST_METHOD'] === 'POST' && formOpsPublicConsentAccepted();
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$acceptedPrivacy) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isPricingPreview && !$acceptedPrivacy) {
         formOpsRenderConsentRequired($tenantSlug, $formSlug);
     }
 
-    ob_start(static fn (string $html): string => formOpsInjectPublicCompliance($html, $tenantSlug, $formSlug));
+    ob_start($isPricingPreview
+        ? null
+        : static fn (string $html): string => formOpsInjectPublicCompliance($html, $tenantSlug, $formSlug));
     require __DIR__ . '/../app/pages/public/form-public.php';
 
     // form-public.php mantém os IDs criados no mesmo escopo do include. Assim o
