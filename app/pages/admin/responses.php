@@ -244,28 +244,150 @@ require __DIR__ . '/../../layouts/admin-sidebar.php';
         .responses-table .actions-column { width: 15%; }
     }
     @media (max-width: 767px) {
-        .responses-hero{padding:18px 14px;border-radius:16px}.responses-hero-top{display:block}.responses-add{width:100%;margin-top:17px}.responses-filter-grid,.responses-metrics{grid-template-columns:1fr}.responses-metric{min-height:72px}
-        .card-header{padding:16px 14px!important;align-items:flex-start!important}
-        .card-header > .d-flex{width:100%;justify-content:space-between}
-        .response-bulk-delete{max-width:calc(100vw - 105px);overflow:hidden;text-overflow:ellipsis}
-        .responses-table{display:block;width:100%;table-layout:auto}
-        .responses-table thead{display:none}
-        .responses-table tbody{display:grid;gap:10px;padding:10px;background:#f6f8fb}
-        .responses-table tr{position:relative;display:block;width:100%;padding:14px 14px 13px 48px;border:1px solid #e3e8ef;border-radius:14px;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.035)}
-        .responses-table td{display:block;width:auto!important;min-width:0;border:0!important;padding:0!important;text-align:left!important;overflow:visible}
-        .responses-table .contact-column,.responses-table .info-column{display:none}
-        .responses-table .select-column{position:absolute;left:14px;top:16px;width:20px!important}
-        .responses-table .number-column{display:inline-flex;align-items:center;min-height:24px;margin-bottom:7px;color:#64748b;font-size:.78rem;font-weight:800!important}
-        .responses-table .participant-column{padding-right:0!important}
-        .responses-table .participant-column .response-primary{font-size:.98rem;line-height:1.3;color:#0f2f78;font-weight:750}
-        .responses-table .participant-column .response-secondary{font-size:.78rem}
-        .responses-table .date-column{display:flex;align-items:center;gap:8px;margin-top:9px;color:#64748b;font-size:.78rem}
-        .responses-table .date-column .response-primary,.responses-table .date-column .response-secondary{font-size:.78rem;line-height:1.2;margin:0;color:#64748b}
-        .responses-table .date-column .response-secondary::before{content:"•";margin-right:8px;color:#cbd5e1}
-        .responses-table .actions-column{margin-top:12px;padding-top:11px!important;border-top:1px solid #eef2f7!important}
-        .response-row-actions{justify-content:flex-start;gap:8px;flex-wrap:wrap}
-        .response-icon-action{width:38px;height:38px;border-radius:10px}
-        .response-payment-state{margin-top:7px}
+        .responses-hero{padding:16px 14px;border-radius:16px}.responses-hero-top{display:block}.responses-add{width:100%;margin-top:17px}.responses-filter-grid,.responses-metrics{grid-template-columns:1fr}.responses-metric{min-height:72px}
+        .card.shadow-sm.border-0{border-radius:16px!important;overflow:hidden;background:#fff}
+        .card-header{padding:16px 14px!important;align-items:flex-start!important;gap:12px!important}
+        .card-header > .d-flex{width:100%;justify-content:space-between;gap:10px!important}
+        .response-bulk-delete{flex:1;max-width:none;min-width:0;overflow:hidden;text-overflow:ellipsis}
+        .card-body.p-0,.card-body.p-0 > .w-100{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
+
+        .responses-table,
+        .responses-table tbody,
+        .responses-table tr,
+        .responses-table td{
+            min-width:0!important;
+            max-width:100%!important;
+            box-sizing:border-box!important;
+        }
+        .responses-table{
+            display:block!important;
+            width:100%!important;
+            min-width:0!important;
+            table-layout:auto!important;
+            margin:0!important;
+            --bs-table-bg:transparent;
+            --bs-table-striped-bg:transparent;
+            --bs-table-hover-bg:transparent;
+        }
+        .responses-table thead{display:none!important}
+        .responses-table tbody{
+            display:grid!important;
+            width:100%!important;
+            gap:10px;
+            padding:10px;
+            background:#f5f7fb;
+        }
+        .responses-table tr{
+            display:grid!important;
+            width:100%!important;
+            grid-template-columns:28px minmax(0,1fr);
+            grid-template-areas:
+                "check number"
+                "check participant"
+                "check date"
+                "check actions";
+            column-gap:10px;
+            row-gap:6px;
+            padding:13px 13px 12px;
+            margin:0!important;
+            border:1px solid #e4e9f1;
+            border-radius:14px;
+            background:#fff!important;
+            box-shadow:0 3px 12px rgba(15,23,42,.045);
+        }
+        .responses-table td{
+            display:block!important;
+            width:100%!important;
+            padding:0!important;
+            border:0!important;
+            background:transparent!important;
+            box-shadow:none!important;
+            text-align:left!important;
+            overflow:visible!important;
+        }
+        .responses-table .contact-column,
+        .responses-table .info-column{display:none!important}
+        .responses-table .select-column{
+            grid-area:check;
+            width:28px!important;
+            align-self:start;
+            padding-top:1px!important;
+        }
+        .responses-table .number-column{
+            grid-area:number;
+            display:block!important;
+            width:auto!important;
+            margin:0;
+            color:#64748b;
+            font-size:.78rem;
+            line-height:1.2;
+            font-weight:800!important;
+        }
+        .responses-table .participant-column{
+            grid-area:participant;
+            width:100%!important;
+            min-width:0!important;
+        }
+        .responses-table .participant-column .response-primary{
+            width:100%;
+            min-width:0;
+            color:#0b2e70;
+            font-size:.98rem;
+            line-height:1.28;
+            font-weight:750;
+            overflow-wrap:anywhere;
+            word-break:normal;
+        }
+        .responses-table .participant-column .response-secondary{
+            color:#64748b;
+            font-size:.78rem;
+            overflow-wrap:anywhere;
+        }
+        .responses-table .date-column{
+            grid-area:date;
+            display:flex!important;
+            width:auto!important;
+            align-items:center;
+            gap:7px;
+            margin:1px 0 0;
+        }
+        .responses-table .date-column .response-primary,
+        .responses-table .date-column .response-secondary{
+            color:#64748b;
+            font-size:.76rem;
+            line-height:1.2;
+            margin:0;
+        }
+        .responses-table .date-column .response-secondary::before{
+            content:"•";
+            margin-right:7px;
+            color:#cbd5e1;
+        }
+        .responses-table .actions-column{
+            grid-area:actions;
+            width:100%!important;
+            margin-top:4px;
+            padding-top:10px!important;
+            border-top:1px solid #edf1f6!important;
+        }
+        .response-row-actions{
+            width:100%;
+            justify-content:flex-start;
+            gap:7px;
+            flex-wrap:wrap;
+        }
+        .response-icon-action{
+            width:38px!important;
+            height:38px!important;
+            flex:0 0 38px!important;
+            border-radius:10px;
+        }
+        .response-payment-state{
+            margin-top:7px;
+            padding:4px 8px;
+            font-size:9px;
+        }
+
         #addParticipantModal .modal-body { padding:18px 16px; }
         #addParticipantModal .modal-header { padding:16px; }
         #addParticipantModal .modal-footer { position:sticky; bottom:0; z-index:2; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid #E5E7EB; box-shadow:0 -8px 22px rgba(15,23,42,.08); }
