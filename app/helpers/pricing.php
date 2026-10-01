@@ -45,6 +45,7 @@ function ensurePricingInfrastructure(PDO $pdo): void
         code VARCHAR(80) NOT NULL, discount_type ENUM('percentage','fixed') NOT NULL DEFAULT 'percentage',
         application_scope ENUM('registration','participant') NOT NULL DEFAULT 'registration',
         discount_value DECIMAL(10,2) NOT NULL, min_people INT NOT NULL DEFAULT 1,
+        eligibility_field_id INT NULL, eligibility_min_age INT NULL, eligibility_max_age INT NULL,
         max_uses INT NULL, used_count INT NOT NULL DEFAULT 0, starts_at DATETIME NULL, expires_at DATETIME NULL,
         is_active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -70,6 +71,9 @@ function ensurePricingInfrastructure(PDO $pdo): void
 
     foreach ([
         ['form_discount_coupons', 'application_scope', "ENUM('registration','participant') NOT NULL DEFAULT 'registration'"],
+        ['form_discount_coupons', 'eligibility_field_id', 'INT NULL'],
+        ['form_discount_coupons', 'eligibility_min_age', 'INT NULL'],
+        ['form_discount_coupons', 'eligibility_max_age', 'INT NULL'],
         ['form_coupon_redemptions', 'person_index', 'INT NOT NULL DEFAULT 0'],
     ] as [$table, $column, $definition]) {
         $columnExists->execute([$table, $column]);
@@ -95,6 +99,55 @@ function pricingDiscountAmount(float $base, string $type, float $value): float
     return round(min($base, $discount), 2);
 }
 
+function pricingAgeFromBirthDate(?string $value): ?int
+{
+    $value = trim((string) $value);
+    if ($value === '') return null;
+
+    $birthDate = null;
+    foreach (['!d/m/Y', '!Y-m-d'] as $format) {
+        $candidate = DateTimeImmutable::createFromFormat($format, $value);
+        $errors = DateTimeImmutable::getLastErrors();
+        if ($candidate && ($errors === false || ((int) ($errors['warning_count'] ?? 0) === 0 && (int) ($errors['error_count'] ?? 0) === 0))) {
+            $birthDate = $candidate;
+            break;
+        }
+    }
+
+    if (!$birthDate) return null;
+    $today = new DateTimeImmutable('today');
+    if ($birthDate > $today) return null;
+
+    return $birthDate->diff($today)->y;
+}
+
+function pricingParticipantMeetsAgeEligibility(array $coupon, ?string $birthDate): bool
+{
+    $minAge = $coupon['eligibility_min_age'] !== null ? (int) $coupon['eligibility_min_age'] : null;
+    $maxAge = $coupon['eligibility_max_age'] !== null ? (int) $coupon['eligibility_max_age'] : null;
+    if ($minAge === null && $maxAge === null) return true;
+
+    $age = pricingAgeFromBirthDate($birthDate);
+    if ($age === null) return false;
+
+    if ($minAge !== null && $maxAge !== null) {
+        return $age <= $maxAge || $age >= $minAge;
+    }
+    if ($maxAge !== null) return $age <= $maxAge;
+    return $age >= $minAge;
+}
+
+function pricingAgeEligibilityLabel(array $coupon): string
+{
+    $minAge = $coupon['eligibility_min_age'] !== null ? (int) $coupon['eligibility_min_age'] : null;
+    $maxAge = $coupon['eligibility_max_age'] !== null ? (int) $coupon['eligibility_max_age'] : null;
+
+    if ($minAge !== null && $maxAge !== null) return 'até ' . $maxAge . ' anos ou a partir de ' . $minAge . ' anos';
+    if ($maxAge !== null) return 'até ' . $maxAge . ' anos';
+    if ($minAge !== null) return 'a partir de ' . $minAge . ' anos';
+    return '';
+}
+
 function pricingCouponScopes(PDO $pdo, int $tenantId, int $formId): array
 {
     $stmt = $pdo->prepare('SELECT application_scope, COUNT(*) AS total FROM form_discount_coupons WHERE tenant_id = ? AND form_id = ? AND is_active = 1 GROUP BY application_scope');
@@ -106,7 +159,7 @@ function pricingCouponScopes(PDO $pdo, int $tenantId, int $formId): array
     return $scopes;
 }
 
-function formPricingQuote(PDO $pdo, array $form, int $peopleCount, string $couponCode = '', bool $forUpdate = false, array $participantCouponCodes = []): array
+function formPricingQuote(PDO $pdo, array $form, int $peopleCount, string $couponCode = '', bool $forUpdate = false, array $participantCouponCodes = [], array $participantEligibilityValues = []): array
 {
     $peopleCount = max(1, min(20, $peopleCount));
     $tenantId = (int) $form['tenant_id'];
@@ -183,6 +236,22 @@ function formPricingQuote(PDO $pdo, array $form, int $peopleCount, string $coupo
     }
     foreach ($normalizedParticipantCodes as $personIndex => $participantCode) {
         $participantCoupon = $loadedParticipantCoupons[$participantCode];
+
+        $eligibilityFieldId = (int) ($participantCoupon['eligibility_field_id'] ?? 0);
+        $hasAgeEligibility = $participantCoupon['eligibility_min_age'] !== null || $participantCoupon['eligibility_max_age'] !== null;
+        if ($hasAgeEligibility) {
+            $birthDate = $eligibilityFieldId > 0
+                ? (string) ($participantEligibilityValues[$personIndex][$eligibilityFieldId] ?? '')
+                : '';
+            if (!pricingParticipantMeetsAgeEligibility($participantCoupon, $birthDate)) {
+                $ruleLabel = pricingAgeEligibilityLabel($participantCoupon);
+                throw new DomainException(
+                    'O cupom ' . $participantCoupon['code'] . ' é válido somente para participantes ' . $ruleLabel
+                    . '. Confira a data de nascimento da pessoa ' . $personIndex . '.'
+                );
+            }
+        }
+
         $discount = pricingDiscountAmount((float) $participants[$personIndex]['after_group'], (string) $participantCoupon['discount_type'], (float) $participantCoupon['discount_value']);
         $participants[$personIndex]['coupon_id'] = (int) $participantCoupon['id'];
         $participants[$personIndex]['coupon_code'] = $participantCoupon['code'];
