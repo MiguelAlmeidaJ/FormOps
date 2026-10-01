@@ -72,6 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($pricingAction, ['save_lot
         $scope = in_array($_POST['coupon_scope'] ?? '', ['registration', 'participant'], true) ? $_POST['coupon_scope'] : 'registration';
         $value = pricingPostDecimal('coupon_value');
         $minPeople = max(1, min(20, (int) ($_POST['coupon_min_people'] ?? 1)));
+        $eligibilityFieldId = filter_var($_POST['coupon_eligibility_field_id'] ?? null, FILTER_VALIDATE_INT) ?: null;
+        $eligibilityMinAgeInput = trim((string) ($_POST['coupon_eligibility_min_age'] ?? ''));
+        $eligibilityMaxAgeInput = trim((string) ($_POST['coupon_eligibility_max_age'] ?? ''));
+        $eligibilityMinAge = $eligibilityMinAgeInput === '' ? null : filter_var($eligibilityMinAgeInput, FILTER_VALIDATE_INT);
+        $eligibilityMaxAge = $eligibilityMaxAgeInput === '' ? null : filter_var($eligibilityMaxAgeInput, FILTER_VALIDATE_INT);
         $maxUsesInput = trim((string) ($_POST['coupon_max_uses'] ?? ''));
         $maxUses = $maxUsesInput === '' ? null : filter_var($maxUsesInput, FILTER_VALIDATE_INT);
         $startsInput = trim((string) ($_POST['coupon_starts_at'] ?? ''));
@@ -83,6 +88,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($pricingAction, ['save_lot
         if ($code === '' || !preg_match('/^[A-Z0-9_-]{2,80}$/', $code)) $errors[] = 'Use de 2 a 80 letras, números, hífen ou sublinhado no cupom.';
         if ($type === '') $errors[] = 'Selecione o tipo de desconto do cupom.';
         if ($value === null || $value <= 0 || ($type === 'percentage' && $value > 100)) $errors[] = 'Informe um desconto válido para o cupom.';
+        if ($eligibilityMinAgeInput !== '' && ($eligibilityMinAge === false || $eligibilityMinAge < 0 || $eligibilityMinAge > 130)) $errors[] = 'Informe uma idade mínima válida entre 0 e 130 anos.';
+        if ($eligibilityMaxAgeInput !== '' && ($eligibilityMaxAge === false || $eligibilityMaxAge < 0 || $eligibilityMaxAge > 130)) $errors[] = 'Informe uma idade máxima válida entre 0 e 130 anos.';
+        if ($eligibilityMinAge !== null && $eligibilityMinAge !== false && $eligibilityMaxAge !== null && $eligibilityMaxAge !== false && $eligibilityMinAge <= $eligibilityMaxAge) {
+            $errors[] = 'Quando usar as duas faixas etárias, a idade mínima alternativa deve ser maior que a idade máxima. Ex.: até 17 anos ou a partir de 60 anos.';
+        }
+        $hasAgeEligibility = $eligibilityMinAgeInput !== '' || $eligibilityMaxAgeInput !== '';
+        if ($hasAgeEligibility && $scope !== 'participant') $errors[] = 'A regra de idade está disponível somente para cupons individuais por participante.';
+        if ($hasAgeEligibility && !$eligibilityFieldId) $errors[] = 'Selecione o campo de data de nascimento usado para validar a idade.';
+        if ($hasAgeEligibility && $eligibilityFieldId) {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM form_fields WHERE id = ? AND tenant_id = ? AND form_id = ? AND type = 'date' AND is_layout = 0");
+            $stmt->execute([$eligibilityFieldId, $tenantId, $formId]);
+            if ((int) $stmt->fetchColumn() !== 1) $errors[] = 'O campo escolhido para validar a idade precisa ser um campo de data deste formulário.';
+        }
+        if (!$hasAgeEligibility) {
+            $eligibilityFieldId = null;
+            $eligibilityMinAge = null;
+            $eligibilityMaxAge = null;
+        }
         if ($maxUsesInput !== '' && ($maxUses === false || $maxUses < 1)) $errors[] = 'O limite de usos deve ser maior que zero.';
         if ($startsInput !== '' && $startsAt === null) $errors[] = 'Informe uma data inicial válida para o cupom.';
         if ($expiresInput !== '' && $expiresAt === null) $errors[] = 'Informe uma expiração válida para o cupom.';
@@ -97,12 +120,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($pricingAction, ['save_lot
                     if ($used === false) $errors[] = 'Cupom não encontrado.';
                     elseif ($maxUses !== null && $maxUses < (int) $used) $errors[] = 'O limite não pode ser menor que os usos já registrados.';
                     else {
-                        $stmt = $pdo->prepare('UPDATE form_discount_coupons SET code = ?, discount_type = ?, application_scope = ?, discount_value = ?, min_people = ?, max_uses = ?, starts_at = ?, expires_at = ?, is_active = ? WHERE id = ? AND tenant_id = ? AND form_id = ?');
-                        $stmt->execute([$code, $type, $scope, $value, $minPeople, $maxUses, $startsAt, $expiresAt, $isActive, $couponId, $tenantId, $formId]);
+                        $stmt = $pdo->prepare('UPDATE form_discount_coupons SET code = ?, discount_type = ?, application_scope = ?, discount_value = ?, min_people = ?, eligibility_field_id = ?, eligibility_min_age = ?, eligibility_max_age = ?, max_uses = ?, starts_at = ?, expires_at = ?, is_active = ? WHERE id = ? AND tenant_id = ? AND form_id = ?');
+                        $stmt->execute([$code, $type, $scope, $value, $minPeople, $eligibilityFieldId, $eligibilityMinAge, $eligibilityMaxAge, $maxUses, $startsAt, $expiresAt, $isActive, $couponId, $tenantId, $formId]);
                     }
                 } else {
-                    $stmt = $pdo->prepare('INSERT INTO form_discount_coupons (tenant_id, form_id, code, discount_type, application_scope, discount_value, min_people, max_uses, starts_at, expires_at, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                    $stmt->execute([$tenantId, $formId, $code, $type, $scope, $value, $minPeople, $maxUses, $startsAt, $expiresAt, $isActive]);
+                    $stmt = $pdo->prepare('INSERT INTO form_discount_coupons (tenant_id, form_id, code, discount_type, application_scope, discount_value, min_people, eligibility_field_id, eligibility_min_age, eligibility_max_age, max_uses, starts_at, expires_at, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                    $stmt->execute([$tenantId, $formId, $code, $type, $scope, $value, $minPeople, $eligibilityFieldId, $eligibilityMinAge, $eligibilityMaxAge, $maxUses, $startsAt, $expiresAt, $isActive]);
                 }
             } catch (PDOException $exception) {
                 if ((int) ($exception->errorInfo[1] ?? 0) === 1062) $errors[] = 'Já existe um cupom com este código.';
