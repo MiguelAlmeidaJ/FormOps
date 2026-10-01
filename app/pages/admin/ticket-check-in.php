@@ -3,14 +3,15 @@
 requireTenantContext();
 
 $tenantId = (int) currentTenantIdForData();
-$identifier = trim((string) ($_GET['token'] ?? $_GET['code'] ?? $_POST['identifier'] ?? ''));
-$csrfToken = $_SESSION['ticket_checkin_csrf'] ??= bin2hex(random_bytes(32));
-$ticket = null;
+$currentUser = user();
+$pageTitle = 'Controle de entrada';
+$csrfToken = $_SESSION['ticket_checkin_access_csrf'] ??= bin2hex(random_bytes(32));
 $message = null;
 $messageType = 'info';
+$generatedToken = null;
 
 $eventsSql =
-    'SELECT id, title, ticket_title, ticket_event_at
+    'SELECT id, title, ticket_title, ticket_event_at, ticket_location
      FROM forms
      WHERE tenant_id = ? AND ticket_enabled = 1';
 $eventsParams = [$tenantId];
@@ -22,246 +23,175 @@ $eventsSql .= ' ORDER BY ticket_event_at DESC, created_at DESC, id DESC';
 $stmt = $pdo->prepare($eventsSql);
 $stmt->execute($eventsParams);
 $ticketEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$ticketEventsById = [];
+$eventsById = [];
 foreach ($ticketEvents as $event) {
-    $ticketEventsById[(int) $event['id']] = $event;
+    $eventsById[(int) $event['id']] = $event;
 }
 
 $eventInput = $_SERVER['REQUEST_METHOD'] === 'POST'
     ? ($_POST['form_id'] ?? null)
     : ($_GET['form_id'] ?? null);
-$hasEventInput = $eventInput !== null && $eventInput !== '';
 $selectedEventId = filter_var($eventInput, FILTER_VALIDATE_INT) ?: null;
-if ($selectedEventId !== null && !isset($ticketEventsById[$selectedEventId])) {
+if ($selectedEventId === null && $ticketEvents) {
+    $selectedEventId = (int) $ticketEvents[0]['id'];
+}
+if ($selectedEventId !== null && !isset($eventsById[$selectedEventId])) {
     $selectedEventId = null;
-    $message = 'O evento selecionado não possui emissão de ingressos ativa.';
+    $message = 'O evento selecionado não está disponível para controle de entrada.';
     $messageType = 'danger';
 }
 
-function ticketAllowedForCurrentGroup(?array $ticket): bool
-{
-    return $ticket
-        && (!shouldScopeTenantUserToGroup()
-            || currentUserCanAccessFormGroup(!empty($ticket['form_group_id']) ? (int) $ticket['form_group_id'] : null));
-}
-
-// Links vindos do QR Code não carregam o filtro: selecione o evento do próprio ingresso.
-if (!$hasEventInput && $identifier !== '') {
-    $identifiedTicket = findTenantTicketByIdentifier($pdo, $tenantId, $identifier);
-    if (ticketAllowedForCurrentGroup($identifiedTicket) && isset($ticketEventsById[(int) ($identifiedTicket['form_id'] ?? 0)])) {
-        $selectedEventId = (int) $identifiedTicket['form_id'];
-    }
-}
-if (!$hasEventInput && $selectedEventId === null && $ticketEvents) {
-    $selectedEventId = (int) $ticketEvents[0]['id'];
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check_in') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'rotate_access_token') {
     $postedCsrf = (string) ($_POST['csrf_token'] ?? '');
     if (!hash_equals($csrfToken, $postedCsrf)) {
         $message = 'A sessão expirou. Atualize a página e tente novamente.';
         $messageType = 'danger';
-    } else {
-        $ticket = findTenantTicketByIdentifier($pdo, $tenantId, $identifier);
-        if (!ticketAllowedForCurrentGroup($ticket) || $selectedEventId === null || (int) ($ticket['form_id'] ?? 0) !== $selectedEventId || !isset($ticketEventsById[$selectedEventId])) {
-            $ticket = null;
-            $message = 'Ingresso não encontrado para o evento selecionado.';
-            $messageType = 'danger';
-        } elseif (($ticket['status'] ?? '') === 'cancelled') {
-            $message = 'Este ingresso está cancelado e não pode ser utilizado.';
-            $messageType = 'danger';
-        } elseif (($ticket['status'] ?? '') === 'used' || !empty($ticket['checked_in_at'])) {
-            $message = 'A entrada deste participante já foi registrada.';
-            $messageType = 'warning';
-        } else {
-            $stmt = $pdo->prepare(
-                "UPDATE form_tickets
-                 SET status = 'used', checked_in_at = NOW(), checked_in_by = ?
-                 WHERE id = ? AND tenant_id = ? AND status = 'valid' AND checked_in_at IS NULL"
-            );
-            $stmt->execute([(int) (user()['id'] ?? 0), (int) $ticket['id'], $tenantId]);
-            if ($stmt->rowCount() === 1) {
-                redirectTo('ticket-check-in', ['form_id' => $selectedEventId, 'token' => $ticket['token'], 'result' => 'success']);
-            }
-            $message = 'O ingresso foi atualizado por outro usuário. Consulte novamente.';
-            $messageType = 'warning';
-        }
-    }
-}
-
-if (!$ticket && $identifier !== '') {
-    $ticket = findTenantTicketByIdentifier($pdo, $tenantId, $identifier);
-    if (!ticketAllowedForCurrentGroup($ticket) || $selectedEventId === null || (int) ($ticket['form_id'] ?? 0) !== $selectedEventId || !isset($ticketEventsById[$selectedEventId])) {
-        $ticket = null;
-    }
-    if (!$ticket && !$message) {
-        $message = 'Ingresso não encontrado para o evento selecionado.';
+    } elseif ($selectedEventId === null || !isset($eventsById[$selectedEventId])) {
+        $message = 'Selecione um formulário com ingressos ativos.';
         $messageType = 'danger';
+    } else {
+        $generatedToken = rotateTicketCheckinAccessToken(
+            $pdo,
+            $tenantId,
+            $selectedEventId,
+            !empty($currentUser['id']) ? (int) $currentUser['id'] : null
+        );
+        $message = 'Novo acesso gerado. O token anterior deixou de funcionar.';
+        $messageType = 'success';
     }
 }
 
-if ($ticket && ($_GET['result'] ?? '') === 'success') {
-    $message = 'Entrada registrada com sucesso.';
-    $messageType = 'success';
-}
+$accessInfo = $selectedEventId !== null
+    ? ticketCheckinAccessTokenInfo($pdo, $tenantId, $selectedEventId)
+    : null;
 
-$recentEntries = [];
+$counts = ['total' => 0, 'used' => 0, 'remaining' => 0, 'cancelled' => 0];
 if ($selectedEventId !== null) {
-    $recentSql =
-        'SELECT ft.code, ft.participant_name, ft.checked_in_at, f.title AS form_title
-         FROM form_tickets ft
-         INNER JOIN forms f ON f.id = ft.form_id AND f.tenant_id = ft.tenant_id
-         WHERE ft.tenant_id = ? AND ft.form_id = ? AND f.ticket_enabled = 1 AND ft.checked_in_at IS NOT NULL';
-    $recentParams = [$tenantId, $selectedEventId];
-    if (shouldScopeTenantUserToGroup()) {
-        $recentSql .= ' AND ' . currentUserFormGroupScopeSql('f.form_group_id');
-        $recentParams = array_merge($recentParams, currentUserFormGroupIds());
-    }
-    $recentSql .= ' ORDER BY ft.checked_in_at DESC LIMIT 10';
-    $stmt = $pdo->prepare($recentSql);
-    $stmt->execute($recentParams);
-    $recentEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare(
+        "SELECT
+            COUNT(*) AS total,
+            SUM(status = 'used' OR checked_in_at IS NOT NULL) AS used_count,
+            SUM(status = 'valid' AND checked_in_at IS NULL) AS remaining_count,
+            SUM(status = 'cancelled') AS cancelled_count
+         FROM form_tickets
+         WHERE tenant_id = ? AND form_id = ?"
+    );
+    $stmt->execute([$tenantId, $selectedEventId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $counts = [
+        'total' => (int) ($row['total'] ?? 0),
+        'used' => (int) ($row['used_count'] ?? 0),
+        'remaining' => (int) ($row['remaining_count'] ?? 0),
+        'cancelled' => (int) ($row['cancelled_count'] ?? 0),
+    ];
 }
 
-$pageTitle = 'Controle de entrada';
+$accessUrl = $generatedToken !== null
+    ? absoluteAppUrl('entrada', ['token' => $generatedToken])
+    : null;
+
 require __DIR__ . '/../../layouts/admin-header.php';
 require __DIR__ . '/../../layouts/admin-sidebar.php';
 ?>
 
 <style>
-    .checkin-hero{align-items:flex-end}.checkin-event-filter{min-width:300px}.checkin-event-filter label{display:block;margin-bottom:6px;color:#555555;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.checkin-event-filter .form-select{min-height:46px;border-radius:12px}@media(max-width:900px){.checkin-event-filter{min-width:0;margin-top:18px}}
-    .checkin-page{max-width:1040px;margin:0 auto}.checkin-hero{display:flex;justify-content:space-between;gap:20px;margin-bottom:24px}.checkin-title{font-size:34px;font-weight:850;letter-spacing:-.04em;color:#212121;margin:0}.checkin-subtitle{color:#555555;margin:6px 0 0}.checkin-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:20px;align-items:start}.checkin-card{background:#fff;border:1px solid #CECECE;border-radius:20px;box-shadow:0 18px 40px rgba(33,33,33,.07);overflow:hidden}.checkin-card-body{padding:24px}.checkin-card-title{font-size:17px;font-weight:850;color:#212121;margin:0 0 15px}.checkin-search{display:flex;gap:10px}.checkin-search .form-control{min-height:48px;border-radius:12px}.checkin-search .btn{border-radius:12px;font-weight:800;white-space:nowrap}.scanner{display:none;margin-top:16px;border-radius:16px;overflow:hidden;background:#212121;position:relative}.scanner.is-active{display:block}.scanner video{display:block;width:100%;max-height:420px;object-fit:cover}.scanner-guide{position:absolute;inset:18%;border:3px solid rgba(255,255,255,.88);border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.25)}.scanner-message{font-size:13px;color:#555555;margin:10px 0 0}.ticket-result{margin-top:20px;border:1px solid #CECECE;border-radius:18px;overflow:hidden}.ticket-result-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;padding:20px;background:#F3F3F3}.ticket-person{font-size:23px;font-weight:850;color:#212121;margin:0}.ticket-event{font-size:13px;color:#555555;margin-top:4px}.ticket-status{display:inline-flex;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:900;text-transform:uppercase}.ticket-status.valid{background:#dcfce7;color:#166534}.ticket-status.used{background:#fef3c7;color:#92400e}.ticket-status.cancelled{background:#fee2e2;color:#991b1b}.ticket-result-body{padding:20px}.ticket-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.ticket-meta span{display:block;color:#555555;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}.ticket-meta strong{display:block;color:#212121;margin-top:4px}.checkin-submit{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:13px;background:#166534;color:#fff;font-weight:850}.checkin-message{padding:13px 15px;border-radius:12px;margin-top:16px;font-size:14px;font-weight:700}.checkin-message.success{background:#dcfce7;color:#166534}.checkin-message.warning{background:#fef3c7;color:#92400e}.checkin-message.danger{background:#fee2e2;color:#991b1b}.recent-list{display:grid}.recent-item{padding:15px 20px;border-top:1px solid #F3F3F3}.recent-item:first-child{border-top:0}.recent-name{font-weight:800;color:#212121}.recent-meta{font-size:12px;color:#555555;margin-top:3px}.recent-empty{padding:22px;color:#555555;text-align:center}@media(max-width:900px){.checkin-grid{grid-template-columns:1fr}.checkin-hero{display:block}}@media(max-width:575px){.checkin-search{flex-direction:column}.checkin-card-body{padding:18px}.ticket-meta{grid-template-columns:1fr}}
+    .gate-page{max-width:1050px;margin:0 auto}.gate-hero{margin-bottom:22px}.gate-title{font-size:32px;font-weight:850;letter-spacing:-.035em;color:#172033;margin:0}.gate-subtitle{color:#64748b;margin:7px 0 0;max-width:720px}.gate-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:18px;align-items:start}.gate-card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 14px 35px rgba(15,23,42,.055);overflow:hidden}.gate-body{padding:22px}.gate-card h2{font-size:17px;font-weight:850;margin:0 0 6px;color:#172033}.gate-card p{color:#64748b;font-size:13px}.gate-form{display:grid;gap:15px;margin-top:18px}.gate-form label{font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.045em}.gate-form .form-select{min-height:48px;border-radius:12px}.gate-generate{min-height:48px;border-radius:12px;font-weight:800}.gate-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}.gate-stat{padding:14px;border:1px solid #e8edf3;border-radius:13px;background:#f8fafc}.gate-stat span{display:block;font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em}.gate-stat strong{display:block;margin-top:3px;font-size:25px;color:#172033}.gate-token{margin-top:18px;padding:16px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:14px}.gate-token-label{font-size:11px;font-weight:850;color:#166534;text-transform:uppercase;letter-spacing:.05em}.gate-link{display:flex;gap:8px;margin-top:8px}.gate-link input{min-width:0}.gate-link .btn{white-space:nowrap}.gate-open{width:100%;margin-top:10px;min-height:46px;font-weight:800}.gate-status{display:grid;gap:10px;margin-top:16px}.gate-status-row{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid #eef2f7;font-size:13px}.gate-status-row:last-child{border-bottom:0}.gate-status-row span{color:#64748b}.gate-status-row strong{text-align:right;color:#172033}.gate-note{margin-top:14px;padding:13px;border-radius:12px;background:#fff7ed;color:#9a3412;font-size:12px;line-height:1.5}.gate-message{padding:12px 14px;border-radius:12px;margin-bottom:16px;font-size:13px;font-weight:700}.gate-message.success{background:#dcfce7;color:#166534}.gate-message.danger{background:#fee2e2;color:#991b1b}@media(max-width:850px){.gate-grid{grid-template-columns:1fr}.gate-title{font-size:28px}}@media(max-width:575px){.gate-body{padding:17px}.gate-stats{grid-template-columns:1fr 1fr}.gate-link{display:grid}.gate-link .btn{width:100%}}
 </style>
 
-<div class="checkin-page">
-    <header class="checkin-hero">
-        <div><h1 class="checkin-title">Controle de entrada</h1><p class="checkin-subtitle">Leia o QR Code ou informe o código para validar o ingresso.</p></div>
-        <?php if ($ticketEvents): ?>
-            <form method="get" action="<?= htmlspecialchars(appUrl('ticket-check-in')) ?>" class="checkin-event-filter">
-                <label for="checkinEvent">Evento com ingresso</label>
-                <select class="form-select" id="checkinEvent" name="form_id" onchange="this.form.submit()">
-                    <?php foreach ($ticketEvents as $event): ?>
-                        <option value="<?= (int) $event['id'] ?>" <?= $selectedEventId === (int) $event['id'] ? 'selected' : '' ?>><?= htmlspecialchars(trim((string) ($event['ticket_title'] ?? '')) ?: $event['title']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </form>
-        <?php endif; ?>
+<div class="gate-page">
+    <header class="gate-hero">
+        <h1 class="gate-title">Controle de entrada</h1>
+        <p class="gate-subtitle">Selecione o formulário e gere um acesso exclusivo para a equipe da portaria. A área de leitura funciona sem login e prepara uma cópia local dos ingressos para continuar operando mesmo com internet instável.</p>
     </header>
 
-    <?php if (!$ticketEvents): ?><div class="alert alert-info">Nenhum evento com emissão de ingressos ativa foi encontrado.</div><?php endif; ?>
+    <?php if ($message): ?><div class="gate-message <?= htmlspecialchars($messageType) ?>"><?= htmlspecialchars($message) ?></div><?php endif; ?>
 
-    <div class="checkin-grid">
-        <section class="checkin-card">
-            <div class="checkin-card-body">
-                <h2 class="checkin-card-title">Verificar ingresso</h2>
-                <form method="get" action="<?= htmlspecialchars(appUrl('ticket-check-in')) ?>" id="ticketSearchForm">
-                    <input type="hidden" name="form_id" value="<?= (int) $selectedEventId ?>">
-                    <div class="checkin-search">
-                        <input class="form-control" id="ticketIdentifier" name="code" value="<?= htmlspecialchars($identifier) ?>" placeholder="ING-... ou token do ingresso" autocomplete="off" required <?= $selectedEventId === null ? 'disabled' : '' ?>>
-                        <button class="btn btn-primary" type="submit" <?= $selectedEventId === null ? 'disabled' : '' ?>>Consultar</button>
-                        <button class="btn btn-outline-secondary" type="button" id="startScanner" <?= $selectedEventId === null ? 'disabled' : '' ?>>Ler QR Code</button>
+    <?php if (!$ticketEvents): ?>
+        <div class="alert alert-info">Nenhum formulário com emissão de ingressos ativa foi encontrado.</div>
+    <?php else: ?>
+        <div class="gate-grid">
+            <section class="gate-card">
+                <div class="gate-body">
+                    <h2>Acesso da portaria</h2>
+                    <p>Ao regenerar, o acesso anterior é revogado imediatamente.</p>
+
+                    <form method="get" action="<?= htmlspecialchars(appUrl('ticket-check-in')) ?>" class="gate-form">
+                        <div>
+                            <label for="gateEvent">Formulário / evento</label>
+                            <select class="form-select" id="gateEvent" name="form_id" onchange="this.form.submit()">
+                                <?php foreach ($ticketEvents as $event): ?>
+                                    <option value="<?= (int) $event['id'] ?>" <?= $selectedEventId === (int) $event['id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars(trim((string) ($event['ticket_title'] ?? '')) ?: $event['title']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </form>
+
+                    <div class="gate-stats">
+                        <div class="gate-stat"><span>Ingressos</span><strong><?= $counts['total'] ?></strong></div>
+                        <div class="gate-stat"><span>Faltam entrar</span><strong><?= $counts['remaining'] ?></strong></div>
+                        <div class="gate-stat"><span>Já entraram</span><strong><?= $counts['used'] ?></strong></div>
+                        <div class="gate-stat"><span>Cancelados</span><strong><?= $counts['cancelled'] ?></strong></div>
                     </div>
-                </form>
-                <div class="scanner" id="scanner"><video id="scannerVideo" playsinline muted></video><div class="scanner-guide"></div></div>
-                <p class="scanner-message" id="scannerMessage"></p>
 
-                <?php if ($message): ?><div class="checkin-message <?= htmlspecialchars($messageType) ?>"><?= htmlspecialchars($message) ?></div><?php endif; ?>
+                    <form method="post" class="mt-3" data-confirm="<?= $accessInfo ? 'Regenerar o acesso? O link anterior deixará de funcionar.' : 'Gerar acesso para a portaria?' ?>" data-confirm-button="<?= $accessInfo ? 'Regenerar acesso' : 'Gerar acesso' ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                        <input type="hidden" name="action" value="rotate_access_token">
+                        <input type="hidden" name="form_id" value="<?= (int) $selectedEventId ?>">
+                        <button class="btn btn-primary gate-generate w-100" type="submit"><?= $accessInfo ? 'Regenerar token de acesso' : 'Gerar token de acesso' ?></button>
+                    </form>
 
-                <?php if ($ticket): ?>
-                    <?php $ticketStatus = (string) ($ticket['status'] ?? 'invalid'); ?>
-                    <article class="ticket-result">
-                        <div class="ticket-result-head">
-                            <div><h3 class="ticket-person"><?= htmlspecialchars($ticket['participant_name'] ?: 'Participante') ?></h3><div class="ticket-event"><?= htmlspecialchars($ticket['ticket_title'] ?: $ticket['form_title']) ?></div></div>
-                            <span class="ticket-status <?= htmlspecialchars($ticketStatus) ?>"><?= htmlspecialchars(ticketStatusLabel($ticketStatus)) ?></span>
-                        </div>
-                        <div class="ticket-result-body">
-                            <div class="ticket-meta">
-                                <div><span>Código</span><strong><?= htmlspecialchars($ticket['code']) ?></strong></div>
-                                <div><span>Emitido em</span><strong><?= htmlspecialchars(date('d/m/Y H:i', strtotime($ticket['issued_at']))) ?></strong></div>
-                                <?php if (!empty($ticket['ticket_event_at'])): ?><div><span>Evento</span><strong><?= htmlspecialchars(date('d/m/Y H:i', strtotime($ticket['ticket_event_at']))) ?></strong></div><?php endif; ?>
-                                <?php if (!empty($ticket['checked_in_at'])): ?><div><span>Entrada registrada</span><strong><?= htmlspecialchars(date('d/m/Y H:i:s', strtotime($ticket['checked_in_at']))) ?></strong></div><?php endif; ?>
+                    <?php if ($accessUrl): ?>
+                        <div class="gate-token">
+                            <div class="gate-token-label">Novo acesso gerado</div>
+                            <div class="gate-link">
+                                <input class="form-control" id="gateAccessUrl" value="<?= htmlspecialchars($accessUrl) ?>" readonly>
+                                <button class="btn btn-outline-success" type="button" id="copyGateAccess">Copiar</button>
                             </div>
-                            <?php if ($ticketStatus === 'valid' && empty($ticket['checked_in_at'])): ?>
-                                <form method="post" data-confirm="Registrar a entrada deste participante?" data-confirm-button="Registrar entrada">
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-                                    <input type="hidden" name="action" value="check_in">
-                                    <input type="hidden" name="form_id" value="<?= (int) $selectedEventId ?>">
-                                    <input type="hidden" name="identifier" value="<?= htmlspecialchars($ticket['token']) ?>">
-                                    <button class="checkin-submit" type="submit">Registrar entrada</button>
-                                </form>
-                            <?php endif; ?>
+                            <a class="btn btn-success gate-open" href="<?= htmlspecialchars($accessUrl) ?>" target="_blank" rel="noopener">Abrir e preparar este aparelho</a>
                         </div>
-                    </article>
-                <?php endif; ?>
-            </div>
-        </section>
+                    <?php endif; ?>
+                </div>
+            </section>
 
-        <aside class="checkin-card">
-            <div class="checkin-card-body pb-2"><h2 class="checkin-card-title">Entradas recentes</h2></div>
-            <div class="recent-list">
-                <?php foreach ($recentEntries as $entry): ?>
-                    <div class="recent-item"><div class="recent-name"><?= htmlspecialchars($entry['participant_name'] ?: $entry['code']) ?></div><div class="recent-meta"><?= htmlspecialchars($entry['form_title']) ?> · <?= htmlspecialchars(date('d/m/Y H:i:s', strtotime($entry['checked_in_at']))) ?></div></div>
-                <?php endforeach; ?>
-                <?php if (!$recentEntries): ?><div class="recent-empty">Nenhuma entrada registrada.</div><?php endif; ?>
-            </div>
-        </aside>
-    </div>
+            <aside class="gate-card">
+                <div class="gate-body">
+                    <h2>Status do acesso</h2>
+                    <?php if ($accessInfo): ?>
+                        <div class="gate-status">
+                            <div class="gate-status-row"><span>Token</span><strong><?= htmlspecialchars($accessInfo['token_prefix']) ?>…</strong></div>
+                            <div class="gate-status-row"><span>Gerado</span><strong><?= htmlspecialchars(date('d/m/Y H:i', strtotime((string) ($accessInfo['regenerated_at'] ?: $accessInfo['created_at'])))) ?></strong></div>
+                            <div class="gate-status-row"><span>Último uso</span><strong><?= !empty($accessInfo['last_used_at']) ? htmlspecialchars(date('d/m/Y H:i', strtotime($accessInfo['last_used_at']))) : 'Ainda não utilizado' ?></strong></div>
+                        </div>
+                    <?php else: ?>
+                        <p class="mb-0 mt-3">Ainda não existe um acesso ativo para este evento.</p>
+                    <?php endif; ?>
+
+                    <div class="gate-note">
+                        <strong>Modo offline:</strong> abra o novo link no aparelho que será usado na entrada enquanto houver internet. A página salva localmente a lista de ingressos e as dependências do leitor. Entradas feitas sem conexão ficam na fila e são sincronizadas quando a internet voltar. Use apenas aparelhos confiáveis, pois essa cópia contém nome, e-mail e código dos participantes.
+                    </div>
+                </div>
+            </aside>
+        </div>
+    <?php endif; ?>
 </div>
 
 <script>
 (() => {
-    const button = document.getElementById('startScanner');
-    const scanner = document.getElementById('scanner');
-    const video = document.getElementById('scannerVideo');
-    const message = document.getElementById('scannerMessage');
-    const input = document.getElementById('ticketIdentifier');
-    const form = document.getElementById('ticketSearchForm');
-    let stream = null;
-    let scanning = false;
-
-    const stop = () => {
-        scanning = false;
-        stream?.getTracks().forEach(track => track.stop());
-        stream = null;
-        scanner.classList.remove('is-active');
-        button.textContent = 'Ler QR Code';
-    };
-
+    const button = document.getElementById('copyGateAccess');
+    const input = document.getElementById('gateAccessUrl');
     button?.addEventListener('click', async () => {
-        if (scanning) { stop(); return; }
-        if (!('BarcodeDetector' in window)) {
-            message.textContent = 'A leitura pela câmera não é suportada neste navegador. Digite o código do ingresso.';
-            return;
-        }
+        if (!input) return;
         try {
-            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
-            video.srcObject = stream;
-            await video.play();
-            scanning = true;
-            scanner.classList.add('is-active');
-            button.textContent = 'Fechar câmera';
-            message.textContent = 'Posicione o QR Code dentro da área destacada.';
-            const detector = new BarcodeDetector({formats:['qr_code']});
-            const scan = async () => {
-                if (!scanning) return;
-                try {
-                    const codes = await detector.detect(video);
-                    if (codes.length) {
-                        input.value = codes[0].rawValue;
-                        stop();
-                        form.submit();
-                        return;
-                    }
-                } catch (error) {}
-                requestAnimationFrame(scan);
-            };
-            scan();
-        } catch (error) {
-            stop();
-            message.textContent = 'Não foi possível acessar a câmera. Verifique a permissão do navegador.';
+            await navigator.clipboard.writeText(input.value);
+            button.textContent = 'Copiado';
+            setTimeout(() => button.textContent = 'Copiar', 1600);
+        } catch (_) {
+            input.select();
+            document.execCommand('copy');
         }
     });
-    window.addEventListener('beforeunload', stop);
 })();
 </script>
 
