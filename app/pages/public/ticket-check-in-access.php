@@ -275,6 +275,7 @@ window.__FORMOPS_CHECKIN__ = <?= json_encode($bootstrap, JSON_UNESCAPED_UNICODE 
     let stream = null;
     let scanning = false;
     let scanTimer = null;
+    let lastDecodeAt = 0;
 
     function readJson(key, fallback) {
         try { return JSON.parse(localStorage.getItem(key) || '') || fallback; } catch (_) { return fallback; }
@@ -503,10 +504,19 @@ window.__FORMOPS_CHECKIN__ = <?= json_encode($bootstrap, JSON_UNESCAPED_UNICODE 
             scannerMessage.textContent = 'Não foi possível abrir a câmera. No Safari, confirme a permissão de câmera para este site.';
         }
     }
-    function scanFrame() {
+    function scanFrame(timestamp = 0) {
         if (!scanning) return;
+
+        // Decodificar QR é a parte mais pesada. Limitamos a ~7 leituras/s para
+        // manter Safari/iPhone responsivo e reduzir aquecimento da câmera.
+        if (timestamp - lastDecodeAt < 140) {
+            scanTimer = requestAnimationFrame(scanFrame);
+            return;
+        }
+        lastDecodeAt = timestamp;
+
         if (video.readyState >= 2 && video.videoWidth && video.videoHeight && typeof window.jsQR === 'function') {
-            const maxWidth = 720;
+            const maxWidth = 520;
             const scale = Math.min(1, maxWidth / video.videoWidth);
             canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
             canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
@@ -544,12 +554,27 @@ window.__FORMOPS_CHECKIN__ = <?= json_encode($bootstrap, JSON_UNESCAPED_UNICODE 
     window.addEventListener('offline', () => { setNetworkState(); lastSync.textContent = 'Offline · usando cópia local'; });
     window.addEventListener('pagehide', stopCamera);
 
+    async function prepareOfflineShell() {
+        if (!('caches' in window) || !navigator.onLine) return;
+        try {
+            const cache = await caches.open('formops-checkin-v2');
+            await Promise.all([
+                cache.add(window.location.href),
+                cache.add(<?= json_encode(appUrl('assets/vendor/jsQR.js')) ?>),
+                cache.add(<?= json_encode(appUrl('assets/clients/formops/favicon-formops.png')) ?>)
+            ]);
+        } catch (_) {}
+    }
+
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
         navigator.serviceWorker.register(<?= json_encode(appUrl('checkin-sw.js')) ?>, {scope:<?= json_encode(APP_BASE_PATH . '/') ?>})
-            .then(() => syncSnapshot())
+            .then(async () => {
+                await prepareOfflineShell();
+                await syncSnapshot();
+            })
             .catch(() => syncSnapshot());
     } else {
-        syncSnapshot();
+        prepareOfflineShell().finally(syncSnapshot);
     }
 })();
 </script>
