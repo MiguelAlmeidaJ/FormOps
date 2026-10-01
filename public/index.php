@@ -182,6 +182,7 @@ $routes = [
 
     '/ingresso' => 'public/ticket-public.php',
     '/ingresso-pdf' => 'public/ticket-pdf.php',
+    '/entrada' => 'public/ticket-check-in-access.php',
 ];
 
 if (isset($routes[$route])) {
