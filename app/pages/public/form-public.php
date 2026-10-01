@@ -1582,7 +1582,13 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                         headers: { 'X-Requested-With': 'XMLHttpRequest' },
                         signal: pricingPreviewController.signal,
                     });
-                    const payload = await response.json();
+                    const rawResponse = await response.text();
+                    let payload = null;
+                    try {
+                        payload = JSON.parse(rawResponse);
+                    } catch (_) {
+                        throw new Error('Não foi possível validar o cupom agora. Atualize a página e tente novamente.');
+                    }
                     if (!response.ok || !payload.ok) throw new Error(payload.message || 'Não foi possível validar o cupom.');
 
                     applyPricingQuote(payload.quote);
