@@ -1589,6 +1589,14 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                     setPricingFeedback(hasTypedCoupon() ? 'Cupom aplicado automaticamente.' : '', 'success');
                 } catch (error) {
                     if (error?.name === 'AbortError') return;
+
+                    preview.dataset.couponType = '';
+                    preview.dataset.couponValue = '0';
+                    preview.dataset.participantCoupons = '{}';
+                    const couponLabel = preview.querySelector('[data-registration-coupon-label]');
+                    if (couponLabel) couponLabel.textContent = 'Cupom da inscrição';
+                    updatePaymentTotal();
+
                     setPricingFeedback(error?.message || 'Não foi possível recalcular o valor agora.', 'danger');
                 }
             }
