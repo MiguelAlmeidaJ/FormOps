@@ -121,6 +121,40 @@ function pricingAgeFromBirthDate(?string $value): ?int
     return $birthDate->diff($today)->y;
 }
 
+function pricingResolveAgeEligibilityFieldId(PDO $pdo, int $tenantId, int $formId, ?int $preferredFieldId = null): ?int
+{
+    if ($preferredFieldId) {
+        $stmt = $pdo->prepare("SELECT id FROM form_fields WHERE id = ? AND tenant_id = ? AND form_id = ? AND type = 'date' AND is_layout = 0 LIMIT 1");
+        $stmt->execute([$preferredFieldId, $tenantId, $formId]);
+        $fieldId = $stmt->fetchColumn();
+        if ($fieldId !== false) return (int) $fieldId;
+    }
+
+    $stmt = $pdo->prepare("SELECT id, label FROM form_fields WHERE tenant_id = ? AND form_id = ? AND type = 'date' AND is_layout = 0 ORDER BY field_order ASC, id ASC");
+    $stmt->execute([$tenantId, $formId]);
+    $dateFields = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!$dateFields) return null;
+    if (count($dateFields) === 1) return (int) $dateFields[0]['id'];
+
+    $bestFieldId = null;
+    $bestScore = 0;
+    foreach ($dateFields as $field) {
+        $label = trim((string) ($field['label'] ?? ''));
+        $normalized = function_exists('mb_strtolower') ? mb_strtolower($label, 'UTF-8') : strtolower($label);
+        $score = 0;
+        if (str_contains($normalized, 'data de nascimento') || str_contains($normalized, 'data nascimento')) $score = 100;
+        elseif (str_contains($normalized, 'nascimento')) $score = 90;
+        elseif (str_contains($normalized, 'idade')) $score = 80;
+
+        if ($score > $bestScore) {
+            $bestScore = $score;
+            $bestFieldId = (int) $field['id'];
+        }
+    }
+
+    return $bestScore > 0 ? $bestFieldId : null;
+}
+
 function pricingParticipantMeetsAgeEligibility(array $coupon, ?string $birthDate): bool
 {
     $minAge = $coupon['eligibility_min_age'] !== null ? (int) $coupon['eligibility_min_age'] : null;
@@ -237,10 +271,17 @@ function formPricingQuote(PDO $pdo, array $form, int $peopleCount, string $coupo
     foreach ($normalizedParticipantCodes as $personIndex => $participantCode) {
         $participantCoupon = $loadedParticipantCoupons[$participantCode];
 
-        $eligibilityFieldId = (int) ($participantCoupon['eligibility_field_id'] ?? 0);
         $hasAgeEligibility = $participantCoupon['eligibility_min_age'] !== null || $participantCoupon['eligibility_max_age'] !== null;
+        $eligibilityFieldId = $hasAgeEligibility
+            ? pricingResolveAgeEligibilityFieldId(
+                $pdo,
+                $tenantId,
+                $formId,
+                !empty($participantCoupon['eligibility_field_id']) ? (int) $participantCoupon['eligibility_field_id'] : null
+            )
+            : null;
         if ($hasAgeEligibility) {
-            $birthDate = $eligibilityFieldId > 0
+            $birthDate = $eligibilityFieldId
                 ? (string) ($participantEligibilityValues[$personIndex][$eligibilityFieldId] ?? '')
                 : '';
             if (!pricingParticipantMeetsAgeEligibility($participantCoupon, $birthDate)) {
