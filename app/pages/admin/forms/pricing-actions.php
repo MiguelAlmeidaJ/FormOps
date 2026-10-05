@@ -95,11 +95,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($pricingAction, ['save_lot
         }
         $hasAgeEligibility = $eligibilityMinAgeInput !== '' || $eligibilityMaxAgeInput !== '';
         if ($hasAgeEligibility && $scope !== 'participant') $errors[] = 'A regra de idade está disponível somente para cupons individuais por participante.';
-        if ($hasAgeEligibility && !$eligibilityFieldId) $errors[] = 'Selecione o campo de data de nascimento usado para validar a idade.';
-        if ($hasAgeEligibility && $eligibilityFieldId) {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM form_fields WHERE id = ? AND tenant_id = ? AND form_id = ? AND type = 'date' AND is_layout = 0");
-            $stmt->execute([$eligibilityFieldId, $tenantId, $formId]);
-            if ((int) $stmt->fetchColumn() !== 1) $errors[] = 'O campo escolhido para validar a idade precisa ser um campo de data deste formulário.';
+        if ($hasAgeEligibility) {
+            $eligibilityFieldId = pricingResolveAgeEligibilityFieldId(
+                $pdo,
+                (int) $tenantId,
+                (int) $formId,
+                $eligibilityFieldId ? (int) $eligibilityFieldId : null
+            );
+            if (!$eligibilityFieldId) {
+                $errors[] = 'Não foi possível identificar automaticamente o campo de data usado para validar a idade. Se houver mais de um campo de data, selecione o campo correto.';
+            }
         }
         if (!$hasAgeEligibility) {
             $eligibilityFieldId = null;
