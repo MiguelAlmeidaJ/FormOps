@@ -292,6 +292,8 @@ if (
             'ok' => true,
             'quote' => [
                 'people_count' => (int) ($previewQuote['people_count'] ?? $previewPeopleCount),
+                'paying_people_count' => (int) ($previewQuote['paying_people_count'] ?? $previewPeopleCount),
+                'free_people_count' => (int) ($previewQuote['free_people_count'] ?? 0),
                 'unit_price' => (float) ($previewQuote['unit_price'] ?? 0),
                 'subtotal' => (float) ($previewQuote['subtotal'] ?? 0),
                 'lot_name' => $previewQuote['lot_name'] ?? null,
@@ -1239,7 +1241,7 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                             <?php endif; ?>
                             <?php if ((int)($form['payment_enabled'] ?? 0) === 1): ?>
                                 <?php $previewPeople = $allowMultiplePeople ? $initialPeopleCount : 1; $previewAmount = (float) ($pricingPreview['unit_price'] ?? $form['payment_amount'] ?? 0); $previewSubtotal = (float) ($pricingPreview['subtotal'] ?? ($previewAmount * $previewPeople)); $previewTotal = (float) ($pricingPreview['total'] ?? $previewSubtotal); ?>
-                                <div class="payment-box mt-4" id="paymentPreview" data-amount="<?= htmlspecialchars((string) $previewAmount) ?>" data-group-rules="<?= htmlspecialchars(json_encode($groupPricingRules, JSON_UNESCAPED_UNICODE)) ?>" data-coupon-type="<?= htmlspecialchars((string) ($pricingPreview['coupon_type'] ?? '')) ?>" data-coupon-value="<?= htmlspecialchars((string) ($pricingPreview['coupon_value'] ?? '')) ?>" data-participant-coupons="<?= htmlspecialchars(json_encode($pricingPreview['participants'] ?? [], JSON_UNESCAPED_UNICODE)) ?>">
+                                <div class="payment-box mt-4" id="paymentPreview" data-amount="<?= htmlspecialchars((string) $previewAmount) ?>" data-group-rules="<?= htmlspecialchars(json_encode($groupPricingRules, JSON_UNESCAPED_UNICODE)) ?>" data-coupon-type="<?= htmlspecialchars((string) ($pricingPreview['coupon_type'] ?? '')) ?>" data-coupon-value="<?= htmlspecialchars((string) ($pricingPreview['coupon_value'] ?? '')) ?>" data-participant-coupons="<?= htmlspecialchars(json_encode($pricingPreview['participants'] ?? [], JSON_UNESCAPED_UNICODE)) ?>" data-quote-people="<?= (int) ($pricingPreview['people_count'] ?? $previewPeople) ?>" data-quote-subtotal="<?= htmlspecialchars((string) ($pricingPreview['subtotal'] ?? $previewSubtotal)) ?>" data-quote-group-discount="<?= htmlspecialchars((string) ($pricingPreview['group_discount'] ?? 0)) ?>" data-quote-participant-coupon-discount="<?= htmlspecialchars((string) ($pricingPreview['participant_coupon_discount'] ?? 0)) ?>" data-quote-registration-coupon-discount="<?= htmlspecialchars((string) ($pricingPreview['registration_coupon_discount'] ?? 0)) ?>" data-quote-total="<?= htmlspecialchars((string) ($pricingPreview['total'] ?? $previewTotal)) ?>">
                                     <div class="fw-semibold mb-1">Pagamento</div>
                                     <?php if (!empty($pricingPreview['lot_name'])): ?><div class="pricing-lot-badge">Lote atual: <?= htmlspecialchars($pricingPreview['lot_name']) ?></div><?php endif; ?>
                                     <?php if ($pricingAvailabilityError): ?><div class="alert alert-warning small mt-3 mb-0"><?= htmlspecialchars($pricingAvailabilityError) ?></div><?php endif; ?>
@@ -1493,6 +1495,35 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                 if (!preview) return;
                 const amount = Number(preview.dataset.amount || 0);
                 const people = peopleCountValue();
+
+                const quotePeople = Number(preview.dataset.quotePeople || 0);
+                if (quotePeople === people && preview.dataset.quoteTotal !== undefined) {
+                    const subtotal = Number(preview.dataset.quoteSubtotal || 0);
+                    const groupDiscount = Number(preview.dataset.quoteGroupDiscount || 0);
+                    const participantCouponDiscount = Number(preview.dataset.quoteParticipantCouponDiscount || 0);
+                    const couponDiscount = Number(preview.dataset.quoteRegistrationCouponDiscount || 0);
+                    const total = Number(preview.dataset.quoteTotal || 0);
+
+                    const target = preview.querySelector('[data-payment-total]');
+                    if (target) target.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const peopleTarget = preview.querySelector('[data-pricing-people]');
+                    if (peopleTarget) peopleTarget.textContent = String(people);
+                    const subtotalTarget = preview.querySelector('[data-pricing-subtotal]');
+                    if (subtotalTarget) subtotalTarget.textContent = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const groupRow = preview.querySelector('[data-group-discount-row]');
+                    const groupTarget = preview.querySelector('[data-group-discount]');
+                    if (groupRow) groupRow.hidden = groupDiscount <= 0;
+                    if (groupTarget) groupTarget.textContent = '− ' + groupDiscount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const participantCouponRow = preview.querySelector('[data-participant-coupon-discount-row]');
+                    const participantCouponTarget = preview.querySelector('[data-participant-coupon-discount]');
+                    if (participantCouponRow) participantCouponRow.hidden = participantCouponDiscount <= 0;
+                    if (participantCouponTarget) participantCouponTarget.textContent = '− ' + participantCouponDiscount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const couponRow = preview.querySelector('[data-coupon-discount-row]');
+                    const couponTarget = preview.querySelector('[data-coupon-discount]');
+                    if (couponRow) couponRow.hidden = couponDiscount <= 0;
+                    if (couponTarget) couponTarget.textContent = '− ' + couponDiscount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    return;
+                }
                 const unitCents = Math.round(amount * 100);
                 const subtotalCents = unitCents * people;
                 const subtotal = subtotalCents / 100;
@@ -1570,6 +1601,12 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                 preview.dataset.couponType = quote.coupon_type || '';
                 preview.dataset.couponValue = String(Number(quote.coupon_value || 0));
                 preview.dataset.participantCoupons = JSON.stringify(quote.participants || {});
+                preview.dataset.quotePeople = String(Number(quote.people_count || 0));
+                preview.dataset.quoteSubtotal = String(Number(quote.subtotal || 0));
+                preview.dataset.quoteGroupDiscount = String(Number(quote.group_discount || 0));
+                preview.dataset.quoteParticipantCouponDiscount = String(Number(quote.participant_coupon_discount || 0));
+                preview.dataset.quoteRegistrationCouponDiscount = String(Number(quote.registration_coupon_discount || 0));
+                preview.dataset.quoteTotal = String(Number(quote.total || 0));
 
                 const couponLabel = preview.querySelector('[data-registration-coupon-label]');
                 if (couponLabel) {
@@ -1624,7 +1661,13 @@ if ((int) ($form['payment_enabled'] ?? 0) === 1) {
                     if (!response.ok || !payload.ok) throw new Error(payload.message || 'Não foi possível validar o cupom.');
 
                     applyPricingQuote(payload.quote);
-                    setPricingFeedback(hasTypedCoupon() ? 'Cupom aplicado automaticamente.' : '', 'success');
+                    const freeCount = Number(payload.quote?.free_people_count || 0);
+                    setPricingFeedback(
+                        freeCount > 0
+                            ? (freeCount === 1 ? 'Gratuidade por idade aplicada a 1 participante.' : 'Gratuidade por idade aplicada a ' + freeCount + ' participantes.')
+                            : (hasTypedCoupon() ? 'Cupom aplicado automaticamente.' : ''),
+                        'success'
+                    );
                 } catch (error) {
                     if (error?.name === 'AbortError') return;
 
