@@ -32,6 +32,15 @@ function ensurePricingInfrastructure(PDO $pdo): void
         if ((int) $columnExists->fetchColumn() === 0) $pdo->exec('ALTER TABLE form_responses ADD COLUMN ' . $column . ' ' . $definition);
     }
 
+    foreach ([
+        'pricing_free_age_enabled' => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'pricing_free_age_field_id' => 'INT NULL',
+        'pricing_free_max_age' => 'INT NULL',
+    ] as $column => $definition) {
+        $columnExists->execute(['forms', $column]);
+        if ((int) $columnExists->fetchColumn() === 0) $pdo->exec('ALTER TABLE forms ADD COLUMN ' . $column . ' ' . $definition);
+    }
+
     $pdo->exec("CREATE TABLE IF NOT EXISTS form_payment_lots (
         id INT AUTO_INCREMENT PRIMARY KEY, tenant_id INT NOT NULL, form_id INT NOT NULL,
         name VARCHAR(120) NOT NULL, price DECIMAL(10,2) NOT NULL, starts_at DATETIME NULL, ends_at DATETIME NULL,
@@ -220,7 +229,30 @@ function formPricingQuote(PDO $pdo, array $form, int $peopleCount, string $coupo
     if ($configuredLots && !$lot) throw new DomainException('Nenhum lote possui vagas disponíveis neste momento.');
     if ($lot) $basePrice = max(0, (float) $lot['price']);
 
-    $subtotal = round($basePrice * $peopleCount, 2);
+    $freeParticipantIndexes = [];
+    $freeAgeEnabled = (int) ($form['pricing_free_age_enabled'] ?? 0) === 1;
+    $freeMaxAge = isset($form['pricing_free_max_age']) && $form['pricing_free_max_age'] !== null
+        ? (int) $form['pricing_free_max_age']
+        : null;
+    if ($freeAgeEnabled && $freeMaxAge !== null) {
+        $freeAgeFieldId = pricingResolveAgeEligibilityFieldId(
+            $pdo,
+            $tenantId,
+            $formId,
+            !empty($form['pricing_free_age_field_id']) ? (int) $form['pricing_free_age_field_id'] : null
+        );
+        if (!$freeAgeFieldId) {
+            throw new DomainException('A regra de gratuidade por idade está ativa, mas o campo de data de nascimento não foi encontrado.');
+        }
+        foreach (range(1, $peopleCount) as $personIndex) {
+            $birthDate = (string) ($participantEligibilityValues[$personIndex][$freeAgeFieldId] ?? '');
+            $age = pricingAgeFromBirthDate($birthDate);
+            if ($age !== null && $age <= $freeMaxAge) $freeParticipantIndexes[$personIndex] = true;
+        }
+    }
+
+    $payingPeopleCount = max(0, $peopleCount - count($freeParticipantIndexes));
+    $subtotal = round($basePrice * $payingPeopleCount, 2);
     $stmt = $pdo->prepare('SELECT * FROM form_group_discounts WHERE tenant_id = ? AND form_id = ? AND is_active = 1 AND min_people <= ? ORDER BY min_people DESC, id DESC LIMIT 1');
     $stmt->execute([$tenantId, $formId, $peopleCount]);
     $groupRule = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
@@ -230,16 +262,29 @@ function formPricingQuote(PDO $pdo, array $form, int $peopleCount, string $coupo
     $subtotalCents = (int) round($subtotal * 100);
     $groupDiscountCents = (int) round($groupDiscount * 100);
     $unitCents = (int) round($basePrice * 100);
-    $groupShareBase = intdiv($groupDiscountCents, $peopleCount);
-    $groupShareRemainder = $groupDiscountCents % $peopleCount;
+    $groupShareBase = $payingPeopleCount > 0 ? intdiv($groupDiscountCents, $payingPeopleCount) : 0;
+    $groupShareRemainder = $payingPeopleCount > 0 ? $groupDiscountCents % $payingPeopleCount : 0;
     $participants = [];
-    for ($personIndex = 1; $personIndex <= $peopleCount; $personIndex++) {
-        $participantSubtotalCents = $personIndex === $peopleCount ? $subtotalCents - ($unitCents * ($peopleCount - 1)) : $unitCents;
-        $participantGroupCents = $groupShareBase + ($personIndex <= $groupShareRemainder ? 1 : 0);
+    $payingPosition = 0;
+    $distributedSubtotalCents = 0;
+    foreach (range(1, $peopleCount) as $personIndex) {
+        $isFree = isset($freeParticipantIndexes[$personIndex]);
+        if ($isFree) {
+            $participantSubtotalCents = 0;
+            $participantGroupCents = 0;
+        } else {
+            $payingPosition++;
+            $participantSubtotalCents = $payingPosition === $payingPeopleCount
+                ? $subtotalCents - $distributedSubtotalCents
+                : $unitCents;
+            $distributedSubtotalCents += $participantSubtotalCents;
+            $participantGroupCents = $groupShareBase + ($payingPosition <= $groupShareRemainder ? 1 : 0);
+        }
         $participantAfterGroup = max(0, $participantSubtotalCents - $participantGroupCents) / 100;
         $participants[$personIndex] = [
             'person_index' => $personIndex, 'subtotal' => round($participantSubtotalCents / 100, 2),
             'group_discount' => round($participantGroupCents / 100, 2), 'after_group' => round($participantAfterGroup, 2),
+            'is_free' => $isFree, 'free_reason' => $isFree ? 'Gratuidade por idade' : null,
             'coupon_id' => null, 'coupon_code' => null, 'coupon_type' => null, 'coupon_value' => null,
             'coupon_discount' => 0.0, 'total' => round($participantAfterGroup, 2),
         ];
@@ -331,7 +376,8 @@ function formPricingQuote(PDO $pdo, array $form, int $peopleCount, string $coupo
         $groupLabel = 'A partir de ' . (int) $groupRule['min_people'] . ' pessoas · ' . $valueLabel;
     }
     return [
-        'people_count' => $peopleCount, 'unit_price' => $basePrice, 'subtotal' => $subtotal,
+        'people_count' => $peopleCount, 'paying_people_count' => $payingPeopleCount, 'free_people_count' => count($freeParticipantIndexes),
+        'unit_price' => $basePrice, 'subtotal' => $subtotal,
         'lot_id' => $lot ? (int) $lot['id'] : null, 'lot_name' => $lot['name'] ?? null,
         'group_rule_id' => $groupRule ? (int) $groupRule['id'] : null, 'group_rule_label' => $groupLabel,
         'group_discount' => $groupDiscount, 'coupon_id' => $coupon ? (int) $coupon['id'] : null,
