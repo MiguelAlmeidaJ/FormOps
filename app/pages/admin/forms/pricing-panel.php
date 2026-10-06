@@ -48,6 +48,17 @@ function pricingAdminAgeEligibilityLabel(array $coupon): string
         </form>
     </div></section>
 
+    <section class="pricing-card"><div class="pricing-card-head"><div><h2>Gratuidade por idade</h2><p>Zera automaticamente o valor do participante conforme a data de nascimento informada.</p></div><?php if ((int) ($form['pricing_free_age_enabled'] ?? 0) === 1): ?><span class="pricing-badge active">Ativa</span><?php endif; ?></div><div class="pricing-card-body">
+        <form method="post" class="row g-3">
+            <input type="hidden" name="action" value="save_free_age_rule">
+            <div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="pricing_free_age_enabled" value="1" <?= (int) ($form['pricing_free_age_enabled'] ?? 0) === 1 ? 'checked' : '' ?>> Ativar gratuidade automática por idade</label></div>
+            <div class="col-md-7"><label class="form-label">Campo de data de nascimento</label><select class="form-select" name="pricing_free_age_field_id"><option value="">Selecione</option><?php foreach ($dateEligibilityFields as $eligibilityField): ?><option value="<?= (int) $eligibilityField['id'] ?>" <?= (int) (($form['pricing_free_age_field_id'] ?? null) ?: $defaultAgeEligibilityFieldId) === (int) $eligibilityField['id'] ? 'selected' : '' ?>><?= htmlspecialchars($eligibilityField['label']) ?></option><?php endforeach; ?></select><?php if (!$dateEligibilityFields): ?><div class="pricing-help mt-1 text-warning">Crie um campo do tipo Data para usar a gratuidade por idade.</div><?php endif; ?></div>
+            <div class="col-md-5"><label class="form-label">Gratuito até quantos anos?</label><input class="form-control" type="number" min="0" max="130" name="pricing_free_max_age" value="<?= htmlspecialchars((string) ($form['pricing_free_max_age'] ?? '')) ?>" placeholder="12"><div class="pricing-help mt-1">Ex.: 12 = participantes com até 12 anos completos não pagam.</div></div>
+            <div class="col-12"><div class="pricing-help">A pessoa continua ocupando uma vaga do lote. O valor dela fica em R$ 0,00 e os descontos são calculados somente sobre os participantes pagantes.</div></div>
+            <div class="col-12"><button type="submit" class="btn btn-primary">Salvar regra de gratuidade</button></div>
+        </form>
+    </div></section>
+
     <section class="pricing-card"><div class="pricing-card-head"><div><h2>Lotes</h2><p>Cada lote pode ter preço, período e quantidade de vagas próprios. O primeiro lote disponível pela ordem será aplicado.</p></div><span class="badge text-bg-light border"><?= count($paymentLots) ?></span></div><div class="pricing-card-body">
         <?php if ($paymentLots): ?><div class="pricing-items mb-3"><?php foreach ($paymentLots as $lot): ?>
             <?php $remaining = $lot['capacity'] === null ? null : max(0, (int) $lot['capacity'] - (int) $lot['used_quantity']); ?>
