@@ -7,8 +7,40 @@ function pricingPostDecimal(string $key): ?float
 }
 
 $pricingAction = (string) ($_POST['action'] ?? '');
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($pricingAction, ['save_lot', 'delete_lot', 'save_coupon', 'delete_coupon', 'save_group_discount', 'delete_group_discount'], true)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($pricingAction, ['save_lot', 'delete_lot', 'save_coupon', 'delete_coupon', 'save_group_discount', 'delete_group_discount', 'save_free_age_rule'], true)) {
     $activeTab = 'payment';
+
+    if ($pricingAction === 'save_free_age_rule') {
+        $freeAgeEnabled = isset($_POST['pricing_free_age_enabled']) ? 1 : 0;
+        $freeAgeFieldId = filter_var($_POST['pricing_free_age_field_id'] ?? null, FILTER_VALIDATE_INT) ?: null;
+        $freeMaxAgeInput = trim((string) ($_POST['pricing_free_max_age'] ?? ''));
+        $freeMaxAge = $freeMaxAgeInput === '' ? null : filter_var($freeMaxAgeInput, FILTER_VALIDATE_INT);
+
+        if ($freeAgeEnabled) {
+            if ($freeMaxAge === false || $freeMaxAge === null || $freeMaxAge < 0 || $freeMaxAge > 130) {
+                $errors[] = 'Informe a idade máxima para gratuidade entre 0 e 130 anos.';
+            }
+
+            $freeAgeFieldId = pricingResolveAgeEligibilityFieldId(
+                $pdo,
+                (int) $tenantId,
+                (int) $formId,
+                $freeAgeFieldId ? (int) $freeAgeFieldId : null
+            );
+            if (!$freeAgeFieldId) {
+                $errors[] = 'Selecione um campo de data de nascimento válido para aplicar a gratuidade.';
+            }
+        } else {
+            $freeAgeFieldId = null;
+            $freeMaxAge = null;
+        }
+
+        if (!$errors) {
+            $stmt = $pdo->prepare('UPDATE forms SET pricing_free_age_enabled = ?, pricing_free_age_field_id = ?, pricing_free_max_age = ? WHERE id = ? AND tenant_id = ?');
+            $stmt->execute([$freeAgeEnabled, $freeAgeFieldId, $freeMaxAge, $formId, $tenantId]);
+            redirectTo('form-edit', ['id' => $formId, 'tab' => 'payment', 'success' => 'free_age_rule_saved']);
+        }
+    }
 
     if ($pricingAction === 'save_lot') {
         $lotId = filter_var($_POST['lot_id'] ?? null, FILTER_VALIDATE_INT) ?: null;
