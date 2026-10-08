@@ -73,10 +73,15 @@ function findTicketCheckinAccessByToken(PDO $pdo, string $rawToken): ?array
 function ticketCheckinSnapshot(PDO $pdo, int $tenantId, int $formId): array
 {
     $stmt = $pdo->prepare(
-        'SELECT id, code, token, participant_name, participant_email, status, issued_at, checked_in_at
-         FROM form_tickets
-         WHERE tenant_id = ? AND form_id = ?
-         ORDER BY id ASC'
+        "SELECT ft.id, ft.code, ft.token, ft.participant_name, ft.participant_email, ft.status, ft.issued_at, ft.checked_in_at,
+                (SELECT fra.answer FROM form_response_answers fra
+                 INNER JOIN form_fields ff ON ff.id = fra.field_id AND ff.tenant_id = fra.tenant_id
+                 WHERE fra.tenant_id = ft.tenant_id AND fra.response_id = ft.response_id
+                   AND ff.form_id = ft.form_id AND LOWER(ff.label) LIKE '%cpf%'
+                 ORDER BY ff.id ASC LIMIT 1) AS participant_cpf
+         FROM form_tickets ft
+         WHERE ft.tenant_id = ? AND ft.form_id = ?
+         ORDER BY ft.id ASC"
     );
     $stmt->execute([$tenantId, $formId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
