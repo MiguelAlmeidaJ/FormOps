@@ -42,6 +42,7 @@ function checkinAccessTicketPayload(?array $ticket): ?array
         'token' => (string) ($ticket['token'] ?? ''),
         'participant_name' => (string) ($ticket['participant_name'] ?? ''),
         'participant_email' => (string) ($ticket['participant_email'] ?? ''),
+        'participant_cpf' => (string) ($ticket['participant_cpf'] ?? ''),
         'status' => (string) ($ticket['status'] ?? 'valid'),
         'issued_at' => $ticket['issued_at'] ?? null,
         'checked_in_at' => $ticket['checked_in_at'] ?? null,
@@ -196,13 +197,14 @@ $bootstrap = [
     <section class="card">
         <div class="body">
             <h1 class="scan-title">Ler ingresso</h1>
-            <p class="scan-copy">Use a câmera ou digite o código. A identificação do participante aparece imediatamente.</p>
+            <p class="scan-copy">Use a câmera ou pesquise pelo código, nome ou CPF. Confirme os dados antes de registrar a entrada.</p>
 
             <form id="lookupForm" class="actions">
-                <input class="code-input" id="identifierInput" autocomplete="off" autocapitalize="characters" placeholder="ING-... ou token" aria-label="Código do ingresso">
+                <input class="code-input" id="identifierInput" autocomplete="off" autocapitalize="characters" placeholder="Código, nome ou CPF" aria-label="Código, nome ou CPF">
                 <button class="btn primary" type="submit">Consultar</button>
             </form>
             <button class="btn secondary camera-button" type="button" id="cameraButton">Abrir câmera</button>
+            <div id="searchMatches" style="display:none;margin-top:10px;max-height:270px;overflow:auto"></div>
 
             <div class="scanner" id="scanner">
                 <video id="scannerVideo" playsinline muted></video>
@@ -351,7 +353,41 @@ window.__FORMOPS_CHECKIN__ = <?= json_encode($bootstrap, JSON_UNESCAPED_UNICODE 
     function lookup(value) {
         hideFeedback();
         const key = normalizeIdentifier(value);
-        const ticket = index.get(key);
+        let ticket = index.get(key);
+        const matchesBox = document.getElementById('searchMatches');
+        matchesBox.replaceChildren();
+        matchesBox.style.display = 'none';
+        if (!ticket && key) {
+            const needle = String(value).trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            const digits = String(value).replace(/\D/g, '');
+            const matches = (snapshot.tickets || []).filter(item => {
+                const name = String(item.participant_name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                const cpf = String(item.participant_cpf || '').replace(/\D/g, '');
+                return (needle.length >= 3 && name.includes(needle)) || (digits.length >= 3 && cpf && cpf.includes(digits));
+            }).slice(0, 30);
+            if (matches.length === 1) ticket = matches[0];
+            else if (matches.length > 1) {
+                renderTicket(null);
+                matchesBox.style.display = 'grid';
+                matchesBox.style.gap = '6px';
+                matches.forEach(item => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'btn secondary';
+                    button.style.textAlign = 'left';
+                    button.textContent = (item.participant_name || 'Participante') + ' · ' + (item.code || '') + ' · ' + statusLabel(item.status);
+                    button.addEventListener('click', () => {
+                        matchesBox.replaceChildren();
+                        matchesBox.style.display = 'none';
+                        renderTicket(item);
+                        hideFeedback();
+                    });
+                    matchesBox.appendChild(button);
+                });
+                showFeedback('Mais de um participante encontrado. Selecione o ingresso correto.', 'warn');
+                return null;
+            }
+        }
         if (!ticket) {
             renderTicket(null);
             showFeedback('Ingresso não encontrado na cópia deste evento.', 'bad');
