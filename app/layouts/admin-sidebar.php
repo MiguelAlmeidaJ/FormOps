@@ -65,7 +65,7 @@ if (!isSuperAdmin() && ($currentUser['role'] ?? null) !== 'admin') {
     <div class="admin-sidebar-inner">
         <div class="admin-sidebar-brand">
             <div class="formops-brand-row">
-                <img class="formops-logo-mark" src="assets/clients/formops/favicon-formops.png" alt="FormOps">
+                <img class="formops-logo-mark" src="<?= htmlspecialchars(appUrl('assets/clients/formops/logo-formops.png')) ?>" alt="FormOps">
                 <div>
                     <div class="formops-brand-title">FormOps</div>
                     <div class="formops-brand-subtitle">Workspace</div>
