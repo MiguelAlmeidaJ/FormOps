@@ -35,6 +35,11 @@ if ($selectedGroupId && !isset($groupsById[$selectedGroupId])) {
     $selectedGroupId = null;
 }
 
+$selectedStatus = (string) ($_GET['status'] ?? 'active');
+if (!in_array($selectedStatus, ['active', 'inactive', 'completed', 'all'], true)) {
+    $selectedStatus = 'active';
+}
+
 $sql = '
     SELECT f.*, g.name AS group_name, g.color AS group_color
     FROM forms f
@@ -48,6 +53,14 @@ if ($selectedGroupId) {
 } elseif (shouldScopeTenantUserToGroup()) {
     $sql .= ' AND ' . currentUserFormGroupScopeSql('f.form_group_id');
     $params = array_merge($params, currentUserFormGroupIds());
+}
+// Keep finished and inactive forms available via the status filter, not in the default view.
+if ($selectedStatus === 'active') {
+    $sql .= ' AND f.is_active = 1 AND (f.closes_at IS NULL OR f.closes_at > NOW())';
+} elseif ($selectedStatus === 'completed') {
+    $sql .= ' AND f.closes_at IS NOT NULL AND f.closes_at <= NOW()';
+} elseif ($selectedStatus === 'inactive') {
+    $sql .= ' AND f.is_active = 0 AND (f.closes_at IS NULL OR f.closes_at > NOW())';
 }
 $sql .= ' ORDER BY f.created_at DESC';
 
@@ -103,6 +116,12 @@ require __DIR__ . '/../../../layouts/admin-sidebar.php';
             <?php foreach ($groups as $group): ?>
                 <option value="<?= (int) $group['id'] ?>" <?= $selectedGroupId === (int) $group['id'] ? 'selected' : '' ?>><?= htmlspecialchars($group['name']) ?></option>
             <?php endforeach; ?>
+        </select>
+        <select name="status" class="form-select" aria-label="Filtrar por status" onchange="this.form.submit()">
+            <option value="active" <?= $selectedStatus === 'active' ? 'selected' : '' ?>>Ativos</option>
+            <option value="completed" <?= $selectedStatus === 'completed' ? 'selected' : '' ?>>Concluídos</option>
+            <option value="inactive" <?= $selectedStatus === 'inactive' ? 'selected' : '' ?>>Inativos</option>
+            <option value="all" <?= $selectedStatus === 'all' ? 'selected' : '' ?>>Todos</option>
         </select>
         <a href="<?= htmlspecialchars(appUrl('groups')) ?>" class="btn btn-outline-secondary">Gerenciar grupos</a>
     </form>
@@ -179,7 +198,7 @@ require __DIR__ . '/../../../layouts/admin-sidebar.php';
         <div class="forms-empty-state">
             <div class="forms-empty-icon">FRM</div>
             <h2>Nenhum formulário encontrado</h2>
-            <p>Crie seu primeiro formulário ou ajuste os filtros.</p>
+            <p><?= $selectedStatus === 'active' ? 'Não há formulários ativos no momento. Selecione outro status para consultar o histórico.' : 'Crie seu primeiro formulário ou ajuste os filtros.' ?></p>
             <?php if (canManageTenantData()): ?><a href="<?= htmlspecialchars(appUrl('form-create', $selectedGroupId ? ['group_id' => $selectedGroupId] : [])) ?>" class="forms-primary-action">+ Novo formulário</a><?php endif; ?>
         </div>
     <?php endif; ?>
