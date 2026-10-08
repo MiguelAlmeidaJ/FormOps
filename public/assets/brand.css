@@ -1360,3 +1360,17 @@ body.formops-alert-open {
     }
 }
 
+
+/* Global sidebar identity: full logo expanded, square icon collapsed */
+.admin-sidebar .formops-brand-icon { display:block; flex:0 0 44px; object-fit:contain; }
+.admin-sidebar .formops-brand-horizontal { display:none; width:192px; max-width:100%; max-height:70px; height:auto; object-fit:contain; }
+.admin-sidebar:hover .formops-brand-icon,
+.admin-sidebar:focus-within .formops-brand-icon { display:none; }
+.admin-sidebar:hover .formops-brand-horizontal,
+.admin-sidebar:focus-within .formops-brand-horizontal { display:block; }
+.admin-sidebar:hover .formops-brand-row,
+.admin-sidebar:focus-within .formops-brand-row { justify-content:center; }
+@media (max-width: 767px) {
+ .admin-sidebar .formops-brand-icon { display:none; }
+ .admin-sidebar .formops-brand-horizontal { display:block; }
+}
