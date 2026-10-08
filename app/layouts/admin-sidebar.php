@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../helpers/system-brand.php';
 $currentPath = '/' . trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 $currentSegment = basename($currentPath);
 
@@ -65,11 +66,8 @@ if (!isSuperAdmin() && ($currentUser['role'] ?? null) !== 'admin') {
     <div class="admin-sidebar-inner">
         <div class="admin-sidebar-brand">
             <div class="formops-brand-row">
-                <img class="formops-logo-mark" src="<?= htmlspecialchars(appUrl('assets/clients/formops/logo-formops.png')) ?>" alt="FormOps">
-                <div>
-                    <div class="formops-brand-title">FormOps</div>
-                    <div class="formops-brand-subtitle">Workspace</div>
-                </div>
+                <img class="formops-logo-mark formops-brand-icon" src="<?= htmlspecialchars(formopsSystemBrandUrl('favicon')) ?>" alt="Ícone FormOps"><img class="formops-brand-horizontal" src="<?= htmlspecialchars(formopsSystemBrandUrl('logo')) ?>" alt="Logo FormOps">
+                
             </div>
         </div>
 
