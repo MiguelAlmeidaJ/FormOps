@@ -1,5 +1,6 @@
 <?php
 requireSuperAdmin();
+require_once __DIR__ . '/../../helpers/system-brand.php';
 
 $pageTitle = 'Configurações do sistema';
 $pageStyles = ['assets/system-settings.css'];
@@ -178,6 +179,14 @@ function systemRunCacheAction(string $action): string
     return 'Arquivos removidos: ' . $removed . '.';
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['system_brand_action'] ?? '') === 'save') {
+    if (formopsSaveSystemBrandUploads($errors)) {
+        $success = 'Logo e favicon atualizados com sucesso.';
+    } elseif (!$errors) {
+        $errors[] = 'Selecione ao menos uma imagem para enviar.';
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])) {
     $action = (string) $_POST['maintenance_action'];
 
@@ -260,6 +269,33 @@ require __DIR__ . '/../../layouts/system-sidebar.php';
 
 <?php if ($success): ?><div class="alert alert-success system-alert"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 <?php foreach ($errors as $error): ?><div class="alert alert-danger system-alert"><?= htmlspecialchars($error) ?></div><?php endforeach; ?>
+
+<section class="system-brand-upload-card" style="padding:24px;margin:22px 0;background:#fff;border:1px solid #ddd;border-radius:18px">
+    <h2 style="font-size:20px;font-weight:800">Identidade visual da plataforma</h2>
+    <p class="text-muted">Configure as imagens globais do FormOps. A logo aparece na sidebar aberta e o favicon na sidebar recolhida.</p>
+    <form method="post" enctype="multipart/form-data" action="<?= htmlspecialchars(appUrl('system-settings')) ?>">
+        <input type="hidden" name="system_brand_action" value="save">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="systemLogoFile" class="form-label fw-bold">Logo horizontal — sidebar aberta</label>
+                <div style="padding:16px;background:#123b76;border-radius:12px;min-height:100px;display:flex;align-items:center">
+                    <img src="<?= htmlspecialchars(formopsSystemBrandUrl('logo')) ?>" alt="Logo atual" style="max-width:210px;max-height:75px;width:auto;height:auto;object-fit:contain">
+                </div>
+                <input class="form-control mt-2" id="systemLogoFile" name="logo_file" type="file" accept="image/png,image/jpeg,image/webp">
+                <small class="text-muted">PNG transparente recomendado. Máximo 2 MB.</small>
+            </div>
+            <div class="col-md-6">
+                <label for="systemFaviconFile" class="form-label fw-bold">Favicon — sidebar recolhida</label>
+                <div style="padding:16px;background:#123b76;border-radius:12px;min-height:100px;display:flex;align-items:center">
+                    <img src="<?= htmlspecialchars(formopsSystemBrandUrl('favicon')) ?>" alt="Favicon atual" style="width:60px;height:60px;object-fit:contain">
+                </div>
+                <input class="form-control mt-2" id="systemFaviconFile" name="favicon_file" type="file" accept="image/png,image/jpeg,image/webp">
+                <small class="text-muted">Imagem quadrada recomendada (ex.: 256×256). Máximo 2 MB.</small>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Salvar identidade visual</button>
+    </form>
+</section>
 
 <section class="system-settings-grid premium">
     <article class="system-settings-card">
