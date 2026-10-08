@@ -2,6 +2,7 @@ RewriteEngine On
 
 # Mantém arquivos públicos reais acessíveis quando o projeto é servido pela raiz.
 RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+RewriteRule ^storage/(.*)$ public/storage/$1 [L]
 RewriteRule ^public/ - [L]
 
 # Todas as demais URLs passam pelo front controller.
