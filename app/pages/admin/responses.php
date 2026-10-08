@@ -100,6 +100,8 @@ if ($selectedGroupId && !isset($groupsById[$selectedGroupId])) {
     $selectedGroupId = null;
 }
 
+$selectedStatus = (string) ($_GET['status'] ?? 'active');
+if (!in_array($selectedStatus, ['active', 'completed', 'inactive', 'all'], true)) $selectedStatus = 'active';
 $formsSql = 'SELECT id, title, form_group_id FROM forms WHERE tenant_id = ?';
 $formsParams = [$tenantId];
 if ($selectedGroupId) {
@@ -109,6 +111,9 @@ if ($selectedGroupId) {
     $formsSql .= ' AND ' . currentUserFormGroupScopeSql('form_group_id');
     $formsParams = array_merge($formsParams, currentUserFormGroupIds());
 }
+if ($selectedStatus === 'active') $formsSql .= ' AND is_active = 1 AND (closes_at IS NULL OR closes_at > NOW())';
+elseif ($selectedStatus === 'completed') $formsSql .= ' AND closes_at IS NOT NULL AND closes_at <= NOW()';
+elseif ($selectedStatus === 'inactive') $formsSql .= ' AND is_active = 0 AND (closes_at IS NULL OR closes_at > NOW())';
 $formsSql .= ' ORDER BY created_at DESC, id DESC';
 
 $stmt = $pdo->prepare($formsSql);
@@ -408,7 +413,11 @@ require __DIR__ . '/../../layouts/admin-sidebar.php';
     <?php if ($forms || $groups): ?>
         <form method="get" action="<?= htmlspecialchars(appUrl('responses')) ?>" class="responses-filter-box">
             <div class="responses-filter-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M7 12h10M10 19h4"/></svg> Filtrar respostas</div>
-            <div class="responses-filter-grid">
+            <div class="responses-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
+<div class="responses-filter-control"><label for="status">Status dos formulários</label><select id="status" name="status" class="form-select" onchange="document.getElementById('form_id')?.removeAttribute('name'); this.form.submit()">
+<?php foreach (['active' => 'Ativos', 'completed' => 'Concluídos', 'inactive' => 'Inativos', 'all' => 'Todos'] as $value => $label): ?>
+<option value="<?= $value ?>" <?= $selectedStatus === $value ? 'selected' : '' ?>><?= $label ?></option>
+<?php endforeach; ?></select></div>
                 <?php if ($groups): ?><div class="responses-filter-control"><label for="group_id">Grupo</label><select id="group_id" name="group_id" class="form-select" onchange="document.getElementById('form_id')?.removeAttribute('name'); this.form.submit()"><option value="">Todos os grupos</option><?php foreach ($groups as $group): ?><option value="<?= (int) $group['id'] ?>" <?= $selectedGroupId === (int) $group['id'] ? 'selected' : '' ?>><?= htmlspecialchars($group['name']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
                 <?php if ($forms): ?><div class="responses-filter-control"><label for="form_id">Formulário</label><select id="form_id" name="form_id" class="form-select" onchange="this.form.submit()"><?php foreach ($forms as $form): ?><option value="<?= (int) $form['id'] ?>" <?= (int) $formId === (int) $form['id'] ? 'selected' : '' ?>><?= htmlspecialchars($form['title']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
             </div>
