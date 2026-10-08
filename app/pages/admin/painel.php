@@ -36,7 +36,7 @@ if ($scopedGroupIds && $hasFormGroupColumn) {
     $scopeParams = array_merge([$tenantId], $scopedGroupIds);
     $totalGroups = $hasGroupsTable ? dashboardCount($pdo, 'SELECT COUNT(*) FROM form_groups WHERE tenant_id = ? AND ' . currentUserFormGroupScopeSql('id'), $scopeParams) : 0;
     $totalForms = dashboardCount($pdo, 'SELECT COUNT(*) FROM forms WHERE tenant_id = ? AND ' . currentUserFormGroupScopeSql('form_group_id'), $scopeParams);
-    $activeForms = dashboardCount($pdo, 'SELECT COUNT(*) FROM forms WHERE tenant_id = ? AND ' . currentUserFormGroupScopeSql('form_group_id') . ' AND is_active = 1', $scopeParams);
+    $activeForms = dashboardCount($pdo, 'SELECT COUNT(*) FROM forms WHERE tenant_id = ? AND ' . currentUserFormGroupScopeSql('form_group_id') . ' AND is_active = 1 AND (closes_at IS NULL OR closes_at > NOW())', $scopeParams);
     $totalResponses = dashboardCount($pdo, 'SELECT COUNT(*) FROM form_responses r INNER JOIN forms f ON f.id = r.form_id AND f.tenant_id = r.tenant_id WHERE r.tenant_id = ? AND ' . currentUserFormGroupScopeSql('f.form_group_id'), $scopeParams);
     $responsesToday = dashboardCount($pdo, 'SELECT COUNT(*) FROM form_responses r INNER JOIN forms f ON f.id = r.form_id AND f.tenant_id = r.tenant_id WHERE r.tenant_id = ? AND ' . currentUserFormGroupScopeSql('f.form_group_id') . ' AND DATE(r.created_at) = CURDATE()', $scopeParams);
 } else {
@@ -52,14 +52,14 @@ $recentFormsSql = $hasGroupsTable && $hasFormGroupColumn
        FROM forms f
        LEFT JOIN form_groups g ON g.id = f.form_group_id AND g.tenant_id = f.tenant_id
        LEFT JOIN form_responses r ON r.form_id = f.id AND r.tenant_id = f.tenant_id
-       WHERE f.tenant_id = ?
+       WHERE f.tenant_id = ? AND f.is_active = 1 AND (f.closes_at IS NULL OR f.closes_at > NOW())
        GROUP BY f.id, f.title, f.slug, f.is_active, f.updated_at, g.name
        ORDER BY f.updated_at DESC, f.id DESC
        LIMIT 6'
     : 'SELECT f.id, f.title, f.slug, f.is_active, f.updated_at, "Sem grupo" AS group_name, COUNT(r.id) AS responses_count
        FROM forms f
        LEFT JOIN form_responses r ON r.form_id = f.id AND r.tenant_id = f.tenant_id
-       WHERE f.tenant_id = ?
+       WHERE f.tenant_id = ? AND f.is_active = 1 AND (f.closes_at IS NULL OR f.closes_at > NOW())
        GROUP BY f.id, f.title, f.slug, f.is_active, f.updated_at
        ORDER BY f.updated_at DESC, f.id DESC
        LIMIT 6';
@@ -84,7 +84,7 @@ $latestResponses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $cards = [
     ['label' => 'Grupos', 'value' => $totalGroups, 'text' => 'Áreas organizadas no tenant', 'icon' => '⌁'],
     ['label' => 'Formulários', 'value' => $totalForms, 'text' => 'Formulários criados', 'icon' => '▦'],
-    ['label' => 'Ativos', 'value' => $activeForms, 'text' => 'Formulários publicados', 'icon' => '✓'],
+    ['label' => 'Ativos', 'value' => $activeForms, 'text' => 'Formulários disponíveis para respostas', 'icon' => '✓'],
     ['label' => 'Respostas', 'value' => $totalResponses, 'text' => $responsesToday . ' recebidas hoje', 'icon' => '↗'],
 ];
 
@@ -119,7 +119,7 @@ require __DIR__ . '/../../layouts/admin-sidebar.php';
 
 <section class="dashboard-columns">
     <article class="dashboard-card">
-        <div class="dashboard-card-head"><h2 class="dashboard-card-title">Formulários recentes</h2><a class="dashboard-action" href="forms">Ver todos</a></div>
+        <div class="dashboard-card-head"><h2 class="dashboard-card-title">Formulários ativos</h2><a class="dashboard-action" href="forms">Ver todos</a></div>
         <?php if ($recentForms): ?>
             <div class="table-responsive">
                 <table class="dashboard-table">
@@ -139,7 +139,7 @@ require __DIR__ . '/../../layouts/admin-sidebar.php';
                 </table>
             </div>
         <?php else: ?>
-            <div class="empty-state">Nenhum formulário criado ainda.</div>
+            <div class="empty-state">Nenhum formulário ativo no momento.</div>
         <?php endif; ?>
     </article>
 
