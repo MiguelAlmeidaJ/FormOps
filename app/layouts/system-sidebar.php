@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../helpers/system-brand.php';
 $systemRoute = '/' . trim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/');
 
 function systemMenuActive(string $route): string
@@ -39,7 +40,7 @@ $systemMenu = [
         <div class="system-brand">
             <div class="system-brand-row">
                 <div class="system-logo-wrap">
-                    <img class="system-logo-mark" src="assets/clients/formops/favicon-formops.png" alt="FormOps">
+                    <img class="system-logo-mark" src="<?= htmlspecialchars(formopsSystemBrandUrl('favicon')) ?>" alt="FormOps">
                 </div>
 
                 <div>
